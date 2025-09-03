@@ -1400,7 +1400,7 @@ var init_storage = __esm({
               await pool3.query(
                 `
             INSERT INTO users (
-              email, username, first_name, last_name, password_hash, 
+              email, username, first_name, last_name, password_hash,
               role, department, phone, job_title, location, is_active
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           `,
@@ -2531,15 +2531,50 @@ smartphones
         return newDevice;
       }
       async updateDevice(id, device) {
-        const existing = this.devices.get(id);
-        if (!existing) return void 0;
-        const updated = {
-          ...existing,
-          ...device,
-          updated_at: /* @__PURE__ */ new Date()
-        };
-        this.devices.set(id, updated);
-        return updated;
+        try {
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const result = await pool3.query(
+            `UPDATE devices
+         SET hostname = COALESCE($2, hostname),
+             assigned_user = COALESCE($3, assigned_user),
+             os_name = COALESCE($4, os_name),
+             os_version = COALESCE($5, os_version),
+             ip_address = COALESCE($6, ip_address),
+             status = COALESCE($7, status),
+             last_seen = COALESCE($8, last_seen),
+             updated_at = NOW()
+         WHERE id = $1
+         RETURNING *`,
+            [
+              id,
+              device.hostname,
+              device.assigned_user,
+              device.os_name,
+              device.os_version,
+              device.ip_address,
+              device.status,
+              device.last_seen
+            ]
+          );
+          if (result.rows.length > 0) {
+            return result.rows[0];
+          }
+          return void 0;
+        } catch (error) {
+          console.error("Database update failed, using fallback:", error);
+          if (!this.devices) {
+            this.devices = /* @__PURE__ */ new Map();
+          }
+          const existing = this.devices.get(id);
+          if (!existing) return void 0;
+          const updated = {
+            ...existing,
+            ...device,
+            updated_at: /* @__PURE__ */ new Date()
+          };
+          this.devices.set(id, updated);
+          return updated;
+        }
       }
       async createDeviceReport(report) {
         const id = this.generateId();
@@ -3206,7 +3241,7 @@ smartphones
             memory_usage: memoryUsage,
             disk_usage: diskUsage,
             network_io: networkIo,
-            created_at: /* @__PURE__ */ new Date()
+            collected_at: /* @__PURE__ */ new Date()
           };
           if (data.usb_devices || data.usb?.usb_devices) {
             const usbDevices = data.usb_devices || data.usb?.usb_devices || [];
@@ -6499,6 +6534,361 @@ var init_patch_compliance_service = __esm({
   }
 });
 
+// server/websocket-service.ts
+var websocket_service_exports = {};
+__export(websocket_service_exports, {
+  broadcastToAll: () => broadcastToAll,
+  broadcastToChannel: () => broadcastToChannel,
+  webSocketService: () => webSocketService,
+  websocketService: () => websocketService
+});
+import WebSocket, { WebSocketServer } from "ws";
+function broadcastToChannel(channel, data) {
+  webSocketService.broadcastToChannel(channel, data);
+}
+function broadcastToAll(data) {
+  webSocketService.broadcastToAll(data);
+}
+var WebSocketService, webSocketService, websocketService;
+var init_websocket_service = __esm({
+  "server/websocket-service.ts"() {
+    "use strict";
+    WebSocketService = class {
+      wss = null;
+      channels = /* @__PURE__ */ new Map();
+      // Store agent connections with enhanced metadata: ws instance, last ping time, alive status, connection time, message count
+      agentConnections = /* @__PURE__ */ new Map();
+      pendingCommands = /* @__PURE__ */ new Map();
+      // Store pending commands
+      init(server) {
+        this.wss = new WebSocketServer({ server, path: "/ws" });
+        this.wss.on("connection", (ws) => {
+          ws.on("message", (message) => {
+            try {
+              const data = JSON.parse(message);
+              if (data.type === "agent-connect" && data.agentId) {
+                this.onConnection(ws, data.agentId);
+                return;
+              }
+              let agentId = null;
+              if (data.agentId) {
+                agentId = data.agentId;
+                const connection = this.agentConnections.get(agentId);
+                if (connection) {
+                  connection.messageCount = (connection.messageCount || 0) + 1;
+                  if (data.type === "pong") {
+                    connection.lastPing = Date.now();
+                    connection.isAlive = true;
+                  }
+                }
+              } else if (data.type === "pong") {
+              }
+              if (data.type === "subscribe" && data.channel) {
+                this.subscribeToChannel(ws, data.channel);
+              }
+              if (data.type === "unsubscribe" && data.channel) {
+                this.unsubscribeFromChannel(ws, data.channel);
+              }
+              if (data.type === "command-response" && data.requestId) {
+                const commandInfo = this.pendingCommands.get(data.requestId);
+                if (commandInfo) {
+                  clearTimeout(commandInfo.timeout);
+                  commandInfo.resolve(data.payload);
+                  this.pendingCommands.delete(data.requestId);
+                  console.log(`Received response for requestId: ${data.requestId}`);
+                }
+              }
+            } catch (error) {
+              console.error("Error parsing WebSocket message:", error);
+            }
+          });
+          ws.on("close", () => {
+            console.log("WebSocket connection closed");
+            this.removeFromAllChannels(ws);
+            for (const [agentId, connection] of this.agentConnections.entries()) {
+              if (connection.ws === ws) {
+                console.log(`Agent ${agentId} disconnected from WebSocket.`);
+                this.agentConnections.delete(agentId);
+                for (const [requestId, commandInfo] of this.pendingCommands.entries()) {
+                  clearTimeout(commandInfo.timeout);
+                  commandInfo.reject(new Error(`Connection closed for agent ${agentId} before command could complete`));
+                  this.pendingCommands.delete(requestId);
+                }
+                break;
+              }
+            }
+          });
+          ws.on("error", (error) => {
+            console.error("WebSocket error:", error);
+            this.removeFromAllChannels(ws);
+            for (const [agentId, connection] of this.agentConnections.entries()) {
+              if (connection.ws === ws) {
+                console.error(`WebSocket error for agent ${agentId}:`, error);
+                this.agentConnections.delete(agentId);
+                for (const [requestId, commandInfo] of this.pendingCommands.entries()) {
+                  clearTimeout(commandInfo.timeout);
+                  commandInfo.reject(new Error(`WebSocket error occurred for agent ${agentId}`));
+                  this.pendingCommands.delete(requestId);
+                }
+                break;
+              }
+            }
+          });
+        });
+        console.log("WebSocket service initialized");
+      }
+      // Handles the initial connection setup for an agent
+      onConnection(ws, deviceId) {
+        console.log(`\u{1F517} Agent ${deviceId} connected via WebSocket`);
+        console.log(`\u{1F4CA} WebSocket state: ${ws.readyState} (OPEN=1)`);
+        this.agentConnections.set(deviceId, {
+          ws,
+          lastPing: Date.now(),
+          isAlive: true,
+          connectedAt: Date.now(),
+          messageCount: 0
+        });
+        const confirmMessage = {
+          type: "connection-confirmed",
+          agentId: deviceId,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+          message: "Agent successfully connected to ITSM server"
+        };
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(confirmMessage));
+          console.log(`\u2705 Sent connection confirmation to agent ${deviceId}`);
+        }
+        const heartbeatInterval = setInterval(() => {
+          if (this.agentConnections.has(deviceId)) {
+            this.sendPing(deviceId);
+          } else {
+            clearInterval(heartbeatInterval);
+          }
+        }, 3e4);
+        ws.on("message", (message) => {
+          try {
+            const data = JSON.parse(message);
+            const connection = this.agentConnections.get(deviceId);
+            if (connection) {
+              connection.messageCount++;
+              if (data.type === "pong") {
+                connection.lastPing = Date.now();
+                connection.isAlive = true;
+              }
+            }
+            this.handleAgentMessage(deviceId, data);
+          } catch (error) {
+            console.error(`Error parsing message from agent ${deviceId}:`, error);
+          }
+        });
+        ws.on("close", () => {
+          console.log(`Agent ${deviceId} disconnected from WebSocket`);
+          this.agentConnections.delete(deviceId);
+          clearInterval(heartbeatInterval);
+        });
+        ws.on("error", (error) => {
+          console.error(`WebSocket error for agent ${deviceId}:`, error);
+          this.agentConnections.delete(deviceId);
+          clearInterval(heartbeatInterval);
+        });
+        this.sendPing(deviceId);
+        console.log(`Total WebSocket connections: ${this.agentConnections.size}`);
+      }
+      // Placeholder for handling specific agent messages after connection establishment
+      handleAgentMessage(deviceId, data) {
+        const messageType = data.type;
+        console.log(`\u{1F4E8} Received message from agent ${deviceId}: ${messageType}`);
+        switch (messageType) {
+          case "performance-data":
+            if (data.payload) {
+              console.log(`\u{1F4C8} Performance data from ${deviceId}:`, data.payload);
+            }
+            break;
+          case "system-info":
+            console.log(`\u{1F4BB} System info from ${deviceId}:`, data.payload);
+            break;
+          case "ping":
+            const connection = this.agentConnections.get(deviceId);
+            if (connection && connection.ws.readyState === WebSocket.OPEN) {
+              connection.ws.send(JSON.stringify({
+                type: "pong",
+                timestamp: (/* @__PURE__ */ new Date()).toISOString()
+              }));
+            }
+            break;
+          case "pong":
+            const conn = this.agentConnections.get(deviceId);
+            if (conn) {
+              conn.lastPing = Date.now();
+              conn.isAlive = true;
+              console.log(`\u{1F493} Pong received from agent ${deviceId}`);
+            }
+            break;
+          default:
+            console.log(`\u2753 Unknown message type '${messageType}' from agent ${deviceId}`);
+            break;
+        }
+      }
+      subscribeToChannel(ws, channel) {
+        if (!this.channels.has(channel)) {
+          this.channels.set(channel, /* @__PURE__ */ new Set());
+        }
+        this.channels.get(channel).add(ws);
+        console.log(`Client subscribed to channel: ${channel}`);
+      }
+      unsubscribeFromChannel(ws, channel) {
+        if (this.channels.has(channel)) {
+          this.channels.get(channel).delete(ws);
+        }
+      }
+      removeFromAllChannels(ws) {
+        for (const subscribers of this.channels.values()) {
+          subscribers.delete(ws);
+        }
+      }
+      broadcastToChannel(channel, data) {
+        if (!this.channels.has(channel)) {
+          return;
+        }
+        const subscribers = this.channels.get(channel);
+        const message = JSON.stringify(data);
+        subscribers.forEach((ws) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(message);
+            } catch (error) {
+              console.error("Error sending WebSocket message:", error);
+              subscribers.delete(ws);
+            }
+          } else {
+            subscribers.delete(ws);
+          }
+        });
+      }
+      broadcastToAll(data) {
+        if (!this.wss) return;
+        const message = JSON.stringify(data);
+        this.wss.clients.forEach((ws) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(message);
+            } catch (error) {
+              console.error("Error broadcasting WebSocket message:", error);
+            }
+          }
+        });
+      }
+      // Sends a ping to a specific agent
+      sendPing(agentId) {
+        const connection = this.agentConnections.get(agentId);
+        if (connection && connection.ws.readyState === WebSocket.OPEN) {
+          const pingMessage = JSON.stringify({ type: "ping", timestamp: Date.now() });
+          connection.ws.send(pingMessage);
+          connection.lastPing = Date.now();
+        } else if (connection) {
+          console.warn(`Could not send ping to agent ${agentId}: WebSocket not open (state: ${connection.ws.readyState}). Assuming disconnected.`);
+          this.agentConnections.delete(agentId);
+        }
+      }
+      async sendCommandToAgent(agentId, command, timeoutMs = 3e4) {
+        return new Promise((resolve, reject) => {
+          const connection = this.agentConnections.get(agentId);
+          console.log(`Attempting to send command to agent ${agentId}`);
+          console.log(`Available agent connections: ${Array.from(this.agentConnections.keys()).join(", ")}`);
+          console.log(`Total connected agents: ${this.agentConnections.size}`);
+          if (!connection) {
+            console.error(`Agent ${agentId} is not found in agent connections`);
+            console.error(`This likely means the agent is not connected via WebSocket`);
+            reject(new Error(`Agent ${agentId} is not connected`));
+            return;
+          }
+          if (connection.ws.readyState !== WebSocket.OPEN) {
+            console.error(`Agent ${agentId} connection is not ready. State: ${connection.ws.readyState}`);
+            console.error(`WebSocket states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3`);
+            reject(new Error(`Agent ${agentId} connection is not ready`));
+            return;
+          }
+          const requestId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const timeout = setTimeout(() => {
+            this.pendingCommands.delete(requestId);
+            console.error(`Command timeout for agent ${agentId}, command: ${command.command}`);
+            reject(new Error(`Command timeout after ${timeoutMs}ms`));
+          }, timeoutMs);
+          this.pendingCommands.set(requestId, { resolve, reject, timeout });
+          let message;
+          switch (command.command) {
+            case "networkScan":
+              console.log(`Forwarding networkScan command to agent ${agentId}:`, command.params);
+              if (command.params) {
+                message = {
+                  type: "command",
+                  requestId,
+                  command: "networkScan",
+                  params: {
+                    subnet: command.params.subnet,
+                    scan_type: command.params.scan_type || "ping",
+                    session_id: command.params.session_id
+                  }
+                };
+                console.log(`Sending networkScan command with params:`, message.params);
+              } else {
+                console.error(`networkScan command for agent ${agentId} requires params.`);
+                clearTimeout(timeout);
+                this.pendingCommands.delete(requestId);
+                reject(new Error("networkScan command requires params"));
+                return;
+              }
+              break;
+            // Add other command types here if needed
+            default:
+              message = {
+                type: "command",
+                requestId,
+                ...command
+              };
+              break;
+          }
+          console.log(`Sending command to agent ${agentId}:`, message);
+          connection.ws.send(JSON.stringify(message));
+        });
+      }
+      // Endpoint to get status of all agent connections
+      getConnectionStatus() {
+        const connections = Array.from(this.agentConnections.entries()).map(([id, conn]) => ({
+          agentId: id,
+          isAlive: conn.isAlive,
+          lastPing: conn.lastPing,
+          connectedAt: conn.connectedAt || Date.now(),
+          // Ensure connectedAt is always present
+          messageCount: conn.messageCount || 0,
+          // Ensure messageCount is always present
+          connectionAge: Date.now() - (conn.connectedAt || Date.now())
+          // Calculate age of connection
+        }));
+        return {
+          totalConnections: this.agentConnections.size,
+          connectedAgents: Array.from(this.agentConnections.keys()),
+          connectionDetails: connections
+        };
+      }
+      // Check if specific agent is connected
+      isAgentConnected(agentId) {
+        const connection = this.agentConnections.get(agentId);
+        return connection !== void 0 && connection.ws.readyState === WebSocket.OPEN;
+      }
+      // Get all connected agent IDs
+      getConnectedAgentIds() {
+        return Array.from(this.agentConnections.keys()).filter((agentId) => {
+          const connection = this.agentConnections.get(agentId);
+          return connection && connection.ws.readyState === WebSocket.OPEN;
+        });
+      }
+    };
+    webSocketService = new WebSocketService();
+    websocketService = webSocketService;
+  }
+});
+
 // shared/system-config.ts
 var DEFAULT_SYSTEM_CONFIG, SystemConfigService, systemConfig, SystemConfigManager, systemConfigManager;
 var init_system_config = __esm({
@@ -7941,307 +8331,335 @@ var init_auth_middleware = __esm({
   }
 });
 
-// server/websocket-service.ts
-var websocket_service_exports = {};
-__export(websocket_service_exports, {
-  broadcastToAll: () => broadcastToAll,
-  broadcastToChannel: () => broadcastToChannel,
-  webSocketService: () => webSocketService,
-  websocketService: () => websocketService
+// server/services/security-service.ts
+var security_service_exports = {};
+__export(security_service_exports, {
+  securityService: () => securityService
 });
-import WebSocket, { WebSocketServer } from "ws";
-function broadcastToChannel(channel, data) {
-  webSocketService.broadcastToChannel(channel, data);
-}
-function broadcastToAll(data) {
-  webSocketService.broadcastToAll(data);
-}
-var WebSocketService, webSocketService, websocketService;
-var init_websocket_service = __esm({
-  "server/websocket-service.ts"() {
+var SecurityService, securityService;
+var init_security_service = __esm({
+  "server/services/security-service.ts"() {
     "use strict";
-    WebSocketService = class {
-      wss = null;
-      channels = /* @__PURE__ */ new Map();
-      // Store agent connections with enhanced metadata: ws instance, last ping time, alive status, connection time, message count
-      agentConnections = /* @__PURE__ */ new Map();
-      pendingCommands = /* @__PURE__ */ new Map();
-      // Store pending commands
-      init(server) {
-        this.wss = new WebSocketServer({ server, path: "/ws" });
-        this.wss.on("connection", (ws) => {
-          ws.on("message", (message) => {
+    init_storage();
+    SecurityService = class {
+      usbPolicies = [
+        {
+          id: "default-usb-policy",
+          name: "Default USB Security Policy",
+          allowed_vendor_ids: ["046d", "413c", "045e", "0408"],
+          // Logitech, Dell, Microsoft, USB Composite Device
+          blocked_vendor_ids: ["1234", "5678"],
+          // Known malicious vendors
+          allowed_device_types: ["keyboard", "mouse", "webcam", "composite"],
+          blocked_device_types: ["mass_storage", "wireless_adapter"],
+          require_approval: false,
+          is_active: true
+        }
+      ];
+      async checkUSBCompliance(deviceId, usbDevices) {
+        const activePolicy = this.usbPolicies.find((p) => p.is_active);
+        if (!activePolicy) return;
+        for (const device of usbDevices) {
+          const vendorId = this.extractVendorId(
+            device.device_id || device.id || ""
+          );
+          const deviceType = this.categorizeUSBDevice(
+            device.description || device.name || ""
+          );
+          let isViolation = false;
+          let violationReason = "";
+          if (activePolicy.blocked_vendor_ids.includes(vendorId)) {
+            isViolation = true;
+            violationReason = `Blocked vendor: ${vendorId}`;
+          }
+          if (activePolicy.blocked_device_types.includes(deviceType)) {
+            isViolation = true;
+            violationReason = `Blocked device type: ${deviceType}`;
+          }
+          if (activePolicy.require_approval && !activePolicy.allowed_vendor_ids.includes(vendorId)) {
+            isViolation = true;
+            violationReason = `Unauthorized device requires approval`;
+          }
+          if (isViolation) {
+            await storage.createAlert({
+              device_id: deviceId,
+              category: "security",
+              severity: "high",
+              message: `USB Security Policy Violation: ${device.description}`,
+              metadata: {
+                usb_device: device,
+                vendor_id: vendorId,
+                device_type: deviceType,
+                violation_reason: violationReason,
+                policy_name: activePolicy.name
+              },
+              is_active: true
+            });
+          }
+        }
+      }
+      extractVendorId(deviceId) {
+        const match = deviceId.match(/VID_([0-9A-F]{4})/i);
+        return match ? match[1].toLowerCase() : "unknown";
+      }
+      categorizeUSBDevice(description) {
+        const desc13 = description.toLowerCase();
+        if (desc13.includes("mass storage") || desc13.includes("storage"))
+          return "mass_storage";
+        if (desc13.includes("keyboard")) return "keyboard";
+        if (desc13.includes("mouse")) return "mouse";
+        if (desc13.includes("webcam") || desc13.includes("camera")) return "webcam";
+        if (desc13.includes("wireless") || desc13.includes("wifi"))
+          return "wireless_adapter";
+        if (desc13.includes("audio") || desc13.includes("speaker")) return "audio";
+        if (desc13.includes("composite")) return "composite";
+        return "unknown";
+      }
+      async checkSoftwareLicenseCompliance(deviceId, installedSoftware) {
+        const licensedSoftware = await this.getLicensedSoftwareList();
+        for (const software of installedSoftware) {
+          const licenseInfo = licensedSoftware.find(
+            (ls) => software.name?.toLowerCase().includes(ls.name.toLowerCase())
+          );
+          if (licenseInfo) {
+            if (licenseInfo.licenses_available <= licenseInfo.licenses_used) {
+              await storage.createAlert({
+                device_id: deviceId,
+                category: "compliance",
+                severity: "medium",
+                message: `License compliance issue: ${software.name}`,
+                metadata: {
+                  software,
+                  license_info: licenseInfo,
+                  violation_type: "license_exceeded"
+                },
+                is_active: true
+              });
+            }
+          }
+        }
+      }
+      async processAllDevicesForAlerts() {
+        try {
+          console.log("Processing all devices for security alerts...");
+          const devices2 = await storage.getDevices();
+          for (const device of devices2) {
+            const reports = await storage.getDeviceReports(device.id, 1);
+            if (reports.length === 0) continue;
+            const latestReport = reports[0];
+            let rawData;
             try {
-              const data = JSON.parse(message);
-              if (data.type === "agent-connect" && data.agentId) {
-                this.onConnection(ws, data.agentId);
-                return;
-              }
-              let agentId = null;
-              if (data.agentId) {
-                agentId = data.agentId;
-                const connection = this.agentConnections.get(agentId);
-                if (connection) {
-                  connection.messageCount = (connection.messageCount || 0) + 1;
-                  if (data.type === "pong") {
-                    connection.lastPing = Date.now();
-                    connection.isAlive = true;
-                  }
-                }
-              } else if (data.type === "pong") {
-              }
-              if (data.type === "subscribe" && data.channel) {
-                this.subscribeToChannel(ws, data.channel);
-              }
-              if (data.type === "unsubscribe" && data.channel) {
-                this.unsubscribeFromChannel(ws, data.channel);
-              }
-              if (data.type === "command-response" && data.requestId) {
-                const commandInfo = this.pendingCommands.get(data.requestId);
-                if (commandInfo) {
-                  clearTimeout(commandInfo.timeout);
-                  commandInfo.resolve(data.payload);
-                  this.pendingCommands.delete(data.requestId);
-                  console.log(`Received response for requestId: ${data.requestId}`);
-                }
-              }
-            } catch (error) {
-              console.error("Error parsing WebSocket message:", error);
+              rawData = typeof latestReport.raw_data === "string" ? JSON.parse(latestReport.raw_data) : latestReport.raw_data;
+            } catch (e) {
+              continue;
             }
-          });
-          ws.on("close", () => {
-            console.log("WebSocket connection closed");
-            this.removeFromAllChannels(ws);
-            for (const [agentId, connection] of this.agentConnections.entries()) {
-              if (connection.ws === ws) {
-                console.log(`Agent ${agentId} disconnected from WebSocket.`);
-                this.agentConnections.delete(agentId);
-                for (const [requestId, commandInfo] of this.pendingCommands.entries()) {
-                  clearTimeout(commandInfo.timeout);
-                  commandInfo.reject(new Error(`Connection closed for agent ${agentId} before command could complete`));
-                  this.pendingCommands.delete(requestId);
-                }
-                break;
-              }
+            const usbDevices = rawData?.usb_devices || [];
+            if (usbDevices.length > 0) {
+              await this.checkUSBCompliance(device.id, usbDevices);
             }
-          });
-          ws.on("error", (error) => {
-            console.error("WebSocket error:", error);
-            this.removeFromAllChannels(ws);
-            for (const [agentId, connection] of this.agentConnections.entries()) {
-              if (connection.ws === ws) {
-                console.error(`WebSocket error for agent ${agentId}:`, error);
-                this.agentConnections.delete(agentId);
-                for (const [requestId, commandInfo] of this.pendingCommands.entries()) {
-                  clearTimeout(commandInfo.timeout);
-                  commandInfo.reject(new Error(`WebSocket error occurred for agent ${agentId}`));
-                  this.pendingCommands.delete(requestId);
-                }
-                break;
-              }
-            }
-          });
-        });
-        console.log("WebSocket service initialized");
-      }
-      // Handles the initial connection setup for an agent
-      onConnection(ws, deviceId) {
-        console.log(`Agent ${deviceId} connected via WebSocket`);
-        this.agentConnections.set(deviceId, {
-          ws,
-          lastPing: Date.now(),
-          isAlive: true,
-          connectedAt: Date.now(),
-          messageCount: 0
-        });
-        const heartbeatInterval = setInterval(() => {
-          if (this.agentConnections.has(deviceId)) {
-            this.sendPing(deviceId);
-          } else {
-            clearInterval(heartbeatInterval);
-          }
-        }, 3e4);
-        ws.on("message", (message) => {
-          try {
-            const data = JSON.parse(message);
-            const connection = this.agentConnections.get(deviceId);
-            if (connection) {
-              connection.messageCount++;
-              if (data.type === "pong") {
-                connection.lastPing = Date.now();
-                connection.isAlive = true;
-              }
-            }
-            this.handleAgentMessage(deviceId, data);
-          } catch (error) {
-            console.error(`Error parsing message from agent ${deviceId}:`, error);
-          }
-        });
-        ws.on("close", () => {
-          console.log(`Agent ${deviceId} disconnected from WebSocket`);
-          this.agentConnections.delete(deviceId);
-          clearInterval(heartbeatInterval);
-        });
-        ws.on("error", (error) => {
-          console.error(`WebSocket error for agent ${deviceId}:`, error);
-          this.agentConnections.delete(deviceId);
-          clearInterval(heartbeatInterval);
-        });
-        this.sendPing(deviceId);
-        console.log(`Total WebSocket connections: ${this.agentConnections.size}`);
-      }
-      // Placeholder for handling specific agent messages after connection establishment
-      handleAgentMessage(deviceId, data) {
-        if (data.type === "performance-data" && data.payload) {
-          console.log(`Received performance data from ${deviceId}:`, data.payload);
-        }
-      }
-      subscribeToChannel(ws, channel) {
-        if (!this.channels.has(channel)) {
-          this.channels.set(channel, /* @__PURE__ */ new Set());
-        }
-        this.channels.get(channel).add(ws);
-        console.log(`Client subscribed to channel: ${channel}`);
-      }
-      unsubscribeFromChannel(ws, channel) {
-        if (this.channels.has(channel)) {
-          this.channels.get(channel).delete(ws);
-        }
-      }
-      removeFromAllChannels(ws) {
-        for (const subscribers of this.channels.values()) {
-          subscribers.delete(ws);
-        }
-      }
-      broadcastToChannel(channel, data) {
-        if (!this.channels.has(channel)) {
-          return;
-        }
-        const subscribers = this.channels.get(channel);
-        const message = JSON.stringify(data);
-        subscribers.forEach((ws) => {
-          if (ws.readyState === WebSocket.OPEN) {
-            try {
-              ws.send(message);
-            } catch (error) {
-              console.error("Error sending WebSocket message:", error);
-              subscribers.delete(ws);
-            }
-          } else {
-            subscribers.delete(ws);
-          }
-        });
-      }
-      broadcastToAll(data) {
-        if (!this.wss) return;
-        const message = JSON.stringify(data);
-        this.wss.clients.forEach((ws) => {
-          if (ws.readyState === WebSocket.OPEN) {
-            try {
-              ws.send(message);
-            } catch (error) {
-              console.error("Error broadcasting WebSocket message:", error);
+            const software = rawData?.software?.installed || [];
+            if (software.length > 0) {
+              await this.checkVulnerabilities(device.id, software);
+              await this.checkSoftwareLicenseCompliance(device.id, software);
             }
           }
-        });
-      }
-      // Sends a ping to a specific agent
-      sendPing(agentId) {
-        const connection = this.agentConnections.get(agentId);
-        if (connection && connection.ws.readyState === WebSocket.OPEN) {
-          const pingMessage = JSON.stringify({ type: "ping", timestamp: Date.now() });
-          connection.ws.send(pingMessage);
-          connection.lastPing = Date.now();
-        } else if (connection) {
-          console.warn(`Could not send ping to agent ${agentId}: WebSocket not open (state: ${connection.ws.readyState}). Assuming disconnected.`);
-          this.agentConnections.delete(agentId);
+          console.log("Completed security alert processing for all devices");
+        } catch (error) {
+          console.error("Error processing devices for alerts:", error);
         }
       }
-      async sendCommandToAgent(agentId, command, timeoutMs = 3e4) {
-        return new Promise((resolve, reject) => {
-          const connection = this.agentConnections.get(agentId);
-          console.log(`Attempting to send command to agent ${agentId}`);
-          console.log(`Available agent connections: ${Array.from(this.agentConnections.keys()).join(", ")}`);
-          console.log(`Total connected agents: ${this.agentConnections.size}`);
-          if (!connection) {
-            console.error(`Agent ${agentId} is not found in agent connections`);
-            console.error(`This likely means the agent is not connected via WebSocket`);
-            reject(new Error(`Agent ${agentId} is not connected`));
-            return;
+      async checkVulnerabilities(deviceId, installedSoftware) {
+        try {
+          console.log(
+            `Checking vulnerabilities for device ${deviceId} with ${installedSoftware.length} software packages`
+          );
+          if (!installedSoftware || installedSoftware.length === 0) {
+            console.log("No software packages to check for vulnerabilities");
+            return [];
           }
-          if (connection.ws.readyState !== WebSocket.OPEN) {
-            console.error(`Agent ${agentId} connection is not ready. State: ${connection.ws.readyState}`);
-            console.error(`WebSocket states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3`);
-            reject(new Error(`Agent ${agentId} connection is not ready`));
-            return;
-          }
-          const requestId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const timeout = setTimeout(() => {
-            this.pendingCommands.delete(requestId);
-            console.error(`Command timeout for agent ${agentId}, command: ${command.command}`);
-            reject(new Error(`Command timeout after ${timeoutMs}ms`));
-          }, timeoutMs);
-          this.pendingCommands.set(requestId, { resolve, reject, timeout });
-          let message;
-          switch (command.command) {
-            case "networkScan":
-              console.log(`Forwarding networkScan command to agent ${agentId}:`, command.params);
-              if (command.params) {
-                message = {
-                  type: "command",
-                  requestId,
-                  command: "networkScan",
-                  params: {
-                    subnet: command.params.subnet,
-                    scan_type: command.params.scan_type || "ping",
-                    session_id: command.params.session_id
-                  }
-                };
-                console.log(`Sending networkScan command with params:`, message.params);
-              } else {
-                console.error(`networkScan command for agent ${agentId} requires params.`);
-                clearTimeout(timeout);
-                this.pendingCommands.delete(requestId);
-                reject(new Error("networkScan command requires params"));
-                return;
+          const vulnerabilities = [];
+          const knownVulnerabilities = [
+            {
+              software_pattern: "chrome",
+              version_pattern: /^1[0-3][0-9]/,
+              cve_id: "CVE-2024-0001",
+              severity: "high",
+              description: "Remote code execution vulnerability",
+              patch_available: true
+            },
+            {
+              software_pattern: "firefox",
+              version_pattern: /^[1-9][0-9]/,
+              cve_id: "CVE-2024-0002",
+              severity: "medium",
+              description: "Cross-site scripting vulnerability",
+              patch_available: true
+            }
+          ];
+          for (const software of installedSoftware) {
+            const softwareName = software.name?.toLowerCase() || "";
+            const version = software.version || "";
+            const matchingVulns = knownVulnerabilities.filter(
+              (vuln) => softwareName.includes(vuln.software_pattern) && vuln.version_pattern.test(version)
+            );
+            if (matchingVulns.length > 0) {
+              vulnerabilities.push({
+                software_name: software.name,
+                version,
+                cve_matches: matchingVulns.map((v) => ({
+                  cve_id: v.cve_id,
+                  severity: v.severity,
+                  description: v.description,
+                  patch_available: v.patch_available
+                }))
+              });
+              const criticalVulns = matchingVulns.filter(
+                (v) => v.severity === "high" || v.severity === "critical"
+              );
+              if (criticalVulns.length > 0) {
+                await storage.createAlert({
+                  device_id: deviceId,
+                  category: "security",
+                  severity: criticalVulns.some((v) => v.severity === "critical") ? "critical" : "high",
+                  message: `Security vulnerability detected in ${software.name}`,
+                  metadata: {
+                    software,
+                    vulnerabilities: criticalVulns,
+                    patch_available: criticalVulns.some((v) => v.patch_available)
+                  },
+                  is_active: true
+                });
               }
-              break;
-            // Add other command types here if needed
-            default:
-              message = {
-                type: "command",
-                requestId,
-                ...command
-              };
-              break;
+            }
           }
-          console.log(`Sending command to agent ${agentId}:`, message);
-          connection.ws.send(JSON.stringify(message));
-        });
+          console.log(`Found ${vulnerabilities.length} vulnerable packages`);
+          return vulnerabilities;
+        } catch (error) {
+          console.error("Error in checkVulnerabilities:", error);
+          return [];
+        }
       }
-      // Endpoint to get status of all agent connections
-      getConnectionStatus() {
-        const connections = Array.from(this.agentConnections.entries()).map(([id, conn]) => ({
-          agentId: id,
-          isAlive: conn.isAlive,
-          lastPing: conn.lastPing,
-          connectedAt: conn.connectedAt || Date.now(),
-          // Ensure connectedAt is always present
-          messageCount: conn.messageCount || 0,
-          // Ensure messageCount is always present
-          connectionAge: Date.now() - (conn.connectedAt || Date.now())
-          // Calculate age of connection
-        }));
+      async getLicensedSoftwareList() {
+        return [
+          {
+            name: "Microsoft Office",
+            licenses_purchased: 100,
+            licenses_used: 85,
+            licenses_available: 15,
+            cost_per_license: 149.99
+          },
+          {
+            name: "Adobe Acrobat",
+            licenses_purchased: 50,
+            licenses_used: 52,
+            licenses_available: -2,
+            cost_per_license: 179.88
+          }
+        ];
+      }
+      // async checkVulnerabilities(deviceId: string, software: any[] = []) {
+      //   const vulnerabilities = [];
+      //   // Mock vulnerability database - in production, this would connect to CVE databases
+      //   const knownVulnerabilities = {
+      //     'Microsoft Office': {
+      //       versions: ['16.0.15629.20196', '16.0.15028.20160'],
+      //       cves: ['CVE-2024-21413', 'CVE-2024-20683'],
+      //       severity: 'high'
+      //     },
+      //     'Google Chrome': {
+      //       versions: ['120.0.6099.109', '119.0.6045.199'],
+      //       cves: ['CVE-2024-0519', 'CVE-2024-0518'],
+      //       severity: 'critical'
+      //     },
+      //     'Adobe Acrobat': {
+      //       versions: ['23.008.20470', '23.006.20360'],
+      //       cves: ['CVE-2024-20658', 'CVE-2024-20659'],
+      //       severity: 'medium'
+      //     }
+      //   };
+      //   for (const app of software) {
+      //     if (app.name && app.version) {
+      //       // Check if software matches known vulnerabilities
+      //       for (const [vulnSoftware, vulnData] of Object.entries(knownVulnerabilities)) {
+      //         if (app.name.toLowerCase().includes(vulnSoftware.toLowerCase())) {
+      //           if (vulnData.versions.includes(app.version)) {
+      //             vulnerabilities.push({
+      //               software_name: app.name,
+      //               version: app.version,
+      //               cve_matches: vulnData.cves.map(cve => ({
+      //                 cve_id: cve,
+      //                 severity: vulnData.severity,
+      //                 patch_available: Math.random() < 0.8 // 80% chance patch is available
+      //               }))
+      //             });
+      //           }
+      //         }
+      //       }
+      //     }
+      //   }
+      //   return vulnerabilities;
+      // }
+      async getSecurityOverview() {
+        try {
+          const timeout = new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("Security overview timeout")), 5e3)
+          );
+          const dataPromise = this.getSecurityData();
+          const result = await Promise.race([dataPromise, timeout]);
+          return result;
+        } catch (error) {
+          console.error("Security overview error:", error);
+          return this.getFallbackSecurityData();
+        }
+      }
+      async getSecurityData() {
+        try {
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const alertsResult = await pool3.query(`
+        SELECT COUNT(*) as count FROM alerts
+        WHERE is_active = true AND category IN ('security', 'vulnerability')
+      `);
+          const devicesResult = await pool3.query(
+            "SELECT COUNT(*) as count FROM devices"
+          );
+          const activeThreats = parseInt(alertsResult.rows[0]?.count) || 0;
+          const totalDevices = parseInt(devicesResult.rows[0]?.count) || 0;
+          return {
+            threatLevel: activeThreats > 5 ? "high" : activeThreats > 2 ? "medium" : "low",
+            activeThreats,
+            vulnerabilities: {
+              critical: Math.floor(activeThreats * 0.2),
+              high: Math.floor(activeThreats * 0.3),
+              medium: Math.floor(activeThreats * 0.3),
+              low: Math.floor(activeThreats * 0.2)
+            },
+            lastScan: (/* @__PURE__ */ new Date()).toISOString(),
+            complianceScore: Math.max(85, 100 - activeThreats * 2),
+            securityAlerts: activeThreats,
+            firewallStatus: "active",
+            antivirusStatus: "active",
+            patchCompliance: Math.max(75, 100 - activeThreats * 3)
+          };
+        } catch (error) {
+          console.error("Error getting security overview:", error);
+          return this.getFallbackSecurityData();
+        }
+      }
+      getFallbackSecurityData() {
         return {
-          totalConnections: this.agentConnections.size,
-          connectedAgents: Array.from(this.agentConnections.keys()),
-          // lastActivity: this.lastActivity, // Assuming lastActivity is managed elsewhere or not relevant here
-          connectionDetails: connections
+          threatLevel: "low",
+          activeThreats: 0,
+          vulnerabilities: { critical: 0, high: 2, medium: 5, low: 8 },
+          lastScan: (/* @__PURE__ */ new Date()).toISOString(),
+          complianceScore: 85,
+          securityAlerts: 3,
+          firewallStatus: "active",
+          antivirusStatus: "active",
+          patchCompliance: 78
         };
       }
     };
-    webSocketService = new WebSocketService();
-    websocketService = webSocketService;
+    securityService = new SecurityService();
   }
 });
 
@@ -19708,6 +20126,7 @@ function registerDeviceRoutes(app2, authenticateToken4) {
 init_storage();
 init_enhanced_storage();
 init_patch_compliance_service();
+init_websocket_service();
 function extractMetrics(data) {
   const memoryUsage = data.hardware?.memory?.usage_percentage || data.hardware?.memory?.percentage || data.system_health?.memory_pressure?.memory_usage_percent || 0;
   const cpuUsage = data.hardware?.cpu?.usage_percentage || data.hardware?.cpu?.percentage || data.system_health?.metrics?.cpu_percent || 0;
@@ -19753,35 +20172,55 @@ function registerAgentRoutes(app2, authenticateToken4, requireRole3) {
       }
     }
   );
-  app2.get(
-    "/api/agents/:id/connection-status",
-    authenticateToken4,
-    async (req, res) => {
-      try {
-        const agentId = req.params.id;
-        const device = await storage.getDevice(agentId);
-        if (!device) {
-          return res.status(404).json({ message: "Agent not found" });
-        }
-        const lastSeen = new Date(device.last_seen);
-        const now = /* @__PURE__ */ new Date();
-        const timeDiff = now.getTime() - lastSeen.getTime();
-        const minutesOffline = Math.floor(timeDiff / (1e3 * 60));
-        const connectionStatus = {
-          agent_online: device.status === "online" && minutesOffline < 5,
-          last_seen: device.last_seen,
-          minutes_since_contact: minutesOffline,
-          ip_address: device.ip_address,
-          hostname: device.hostname,
-          ready_for_connection: device.status === "online" && minutesOffline < 5
-        };
-        res.json(connectionStatus);
-      } catch (error) {
-        console.error("Error checking connection status:", error);
-        res.status(500).json({ message: "Failed to check connection status" });
+  app2.get("/api/agents/:id/connection-status", authenticateToken4, async (req, res) => {
+    try {
+      const agentId = req.params.id;
+      const agent = await storage.getAgentById(agentId);
+      if (!agent) {
+        return res.status(404).json({ message: "Agent not found" });
       }
+      const lastSeen = agent.last_seen ? new Date(agent.last_seen) : null;
+      const now = /* @__PURE__ */ new Date();
+      const minutesSinceContact = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1e3 * 60)) : null;
+      const isWebSocketConnected = websocketService.isAgentConnected(agentId);
+      const wsStatus = websocketService.getConnectionStatus();
+      const agentWsDetails = wsStatus.connectionDetails?.find((conn) => conn.agentId === agentId);
+      res.json({
+        agent_online: minutesSinceContact !== null && minutesSinceContact <= 5,
+        last_seen: lastSeen?.toISOString() || null,
+        minutes_since_contact: minutesSinceContact,
+        ip_address: agent.ip_address,
+        hostname: agent.hostname,
+        ready_for_connection: minutesSinceContact !== null && minutesSinceContact <= 5,
+        websocket_connected: isWebSocketConnected,
+        websocket_details: agentWsDetails ? {
+          last_ping: new Date(agentWsDetails.lastPing).toISOString(),
+          connection_age_seconds: Math.floor((Date.now() - (agentWsDetails.connectedAt || Date.now())) / 1e3),
+          message_count: agentWsDetails.messageCount,
+          is_alive: agentWsDetails.isAlive
+        } : null
+      });
+    } catch (error) {
+      console.error("Error checking agent connection status:", error);
+      res.status(500).json({ message: "Failed to check connection status" });
     }
-  );
+  });
+  app2.get("/api/agents/websocket-status", authenticateToken4, async (req, res) => {
+    try {
+      const status = websocketService.getConnectionStatus();
+      res.json({
+        ...status,
+        server_info: {
+          websocket_path: "/ws",
+          server_port: process.env.PORT || 5e3,
+          websocket_url: `ws://0.0.0.0:${process.env.PORT || 5e3}/ws`
+        }
+      });
+    } catch (error) {
+      console.error("Error getting WebSocket status:", error);
+      res.status(500).json({ error: "Failed to get WebSocket status" });
+    }
+  });
   app2.post(
     "/api/agents/:id/remote-connect",
     authenticateToken4,
@@ -21000,6 +21439,24 @@ var NetworkScanService = class {
         this.activeScanSessions.set(sessionId, session);
         throw new Error("WebSocket service not available - cannot perform network scan");
       }
+      const connectedAgentIds = websocketService2.getConnectedAgentIds();
+      console.log(`Connected agents via WebSocket: ${connectedAgentIds.join(", ")}`);
+      const availableAgents = scanningAgents.filter((agent) => {
+        const isConnected = websocketService2.isAgentConnected(agent.agent_id);
+        if (!isConnected) {
+          console.warn(`Agent ${agent.hostname} (${agent.agent_id}) is not connected via WebSocket - skipping`);
+        }
+        return isConnected;
+      });
+      if (availableAgents.length === 0) {
+        console.error("No scanning agents are currently connected via WebSocket");
+        session.status = "failed";
+        session.completed_at = /* @__PURE__ */ new Date();
+        this.activeScanSessions.set(sessionId, session);
+        throw new Error("No scanning agents are currently connected via WebSocket");
+      }
+      console.log(`Using ${availableAgents.length}/${scanningAgents.length} connected agents for scanning`);
+      scanningAgents = availableAgents;
       let completedScans = 0;
       const totalScans = scanningAgents.length;
       const allScanResults = [];
@@ -21226,10 +21683,49 @@ var NetworkScanService = class {
 var networkScanService = new NetworkScanService();
 
 // server/routes/network-scan-routes.ts
+init_websocket_service();
 function registerNetworkScanRoutes(app2) {
+  app2.get("/api/network-scan/websocket-status", async (req, res) => {
+    try {
+      const status = websocketService.getConnectionStatus();
+      const enhancedStatus = {
+        ...status,
+        server_info: {
+          websocket_path: "/ws",
+          server_port: process.env.PORT || 5e3,
+          server_host: "0.0.0.0",
+          websocket_url: `ws://0.0.0.0:${process.env.PORT || 5e3}/ws`,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        },
+        agent_details: status.connectionDetails?.map((conn) => ({
+          ...conn,
+          connection_duration: Math.floor((Date.now() - (conn.connectedAt || Date.now())) / 1e3),
+          last_ping_seconds_ago: Math.floor((Date.now() - (conn.lastPing || Date.now())) / 1e3)
+        })) || []
+      };
+      res.json(enhancedStatus);
+    } catch (error) {
+      console.error("Error getting WebSocket status:", error);
+      res.status(500).json({ error: "Failed to get WebSocket status" });
+    }
+  });
   app2.get("/api/network-scan/agents", async (req, res) => {
     try {
       const agents = await networkScanService.getAvailableAgents();
+      const connectedAgentIds = websocketService.getConnectedAgentIds();
+      if (agents.recommended_scanning_agents) {
+        agents.recommended_scanning_agents = agents.recommended_scanning_agents.map((rec) => ({
+          ...rec,
+          agent: {
+            ...rec.agent,
+            websocket_connected: connectedAgentIds.includes(rec.agent.id)
+          }
+        }));
+      }
+      agents.websocket_status = {
+        total_connected: connectedAgentIds.length,
+        connected_agent_ids: connectedAgentIds
+      };
       res.json(agents);
     } catch (error) {
       console.error("Error getting scan agents:", error);
@@ -21251,6 +21747,16 @@ function registerNetworkScanRoutes(app2) {
       const userEmail = req.headers["user-email"] || "admin@company.com";
       if ((!subnets || !Array.isArray(subnets) || subnets.length === 0) && (!custom_ip_ranges || !Array.isArray(custom_ip_ranges) || custom_ip_ranges.length === 0)) {
         return res.status(400).json({ error: "Either subnets or custom IP ranges are required" });
+      }
+      const connectedAgentIds = websocketService.getConnectedAgentIds();
+      if (connectedAgentIds.length === 0) {
+        return res.status(400).json({
+          error: "No agents are currently connected via WebSocket. Cannot perform network scan.",
+          websocket_status: {
+            total_connected: 0,
+            message: "Ensure agents are running and properly connected"
+          }
+        });
       }
       const result = await networkScanService.initiateScan({
         subnets: subnets || [],
@@ -21692,328 +22198,6 @@ function isValidTicketsConfig(tickets2) {
 function isValidSlaConfig(sla) {
   return sla && typeof sla === "object" && (!sla.defaultResponseTime || typeof sla.defaultResponseTime === "number" && sla.defaultResponseTime > 0) && (!sla.defaultResolutionTime || typeof sla.defaultResolutionTime === "number" && sla.defaultResolutionTime > 0) && (!sla.escalationTime || typeof sla.escalationTime === "number" && sla.escalationTime > 0);
 }
-
-// server/services/security-service.ts
-init_storage();
-var SecurityService = class {
-  usbPolicies = [
-    {
-      id: "default-usb-policy",
-      name: "Default USB Security Policy",
-      allowed_vendor_ids: ["046d", "413c", "045e", "0408"],
-      // Logitech, Dell, Microsoft, USB Composite Device
-      blocked_vendor_ids: ["1234", "5678"],
-      // Known malicious vendors
-      allowed_device_types: ["keyboard", "mouse", "webcam", "composite"],
-      blocked_device_types: ["mass_storage", "wireless_adapter"],
-      require_approval: false,
-      is_active: true
-    }
-  ];
-  async checkUSBCompliance(deviceId, usbDevices) {
-    const activePolicy = this.usbPolicies.find((p) => p.is_active);
-    if (!activePolicy) return;
-    for (const device of usbDevices) {
-      const vendorId = this.extractVendorId(
-        device.device_id || device.id || ""
-      );
-      const deviceType = this.categorizeUSBDevice(
-        device.description || device.name || ""
-      );
-      let isViolation = false;
-      let violationReason = "";
-      if (activePolicy.blocked_vendor_ids.includes(vendorId)) {
-        isViolation = true;
-        violationReason = `Blocked vendor: ${vendorId}`;
-      }
-      if (activePolicy.blocked_device_types.includes(deviceType)) {
-        isViolation = true;
-        violationReason = `Blocked device type: ${deviceType}`;
-      }
-      if (activePolicy.require_approval && !activePolicy.allowed_vendor_ids.includes(vendorId)) {
-        isViolation = true;
-        violationReason = `Unauthorized device requires approval`;
-      }
-      if (isViolation) {
-        await storage.createAlert({
-          device_id: deviceId,
-          category: "security",
-          severity: "high",
-          message: `USB Security Policy Violation: ${device.description}`,
-          metadata: {
-            usb_device: device,
-            vendor_id: vendorId,
-            device_type: deviceType,
-            violation_reason: violationReason,
-            policy_name: activePolicy.name
-          },
-          is_active: true
-        });
-      }
-    }
-  }
-  extractVendorId(deviceId) {
-    const match = deviceId.match(/VID_([0-9A-F]{4})/i);
-    return match ? match[1].toLowerCase() : "unknown";
-  }
-  categorizeUSBDevice(description) {
-    const desc13 = description.toLowerCase();
-    if (desc13.includes("mass storage") || desc13.includes("storage"))
-      return "mass_storage";
-    if (desc13.includes("keyboard")) return "keyboard";
-    if (desc13.includes("mouse")) return "mouse";
-    if (desc13.includes("webcam") || desc13.includes("camera")) return "webcam";
-    if (desc13.includes("wireless") || desc13.includes("wifi"))
-      return "wireless_adapter";
-    if (desc13.includes("audio") || desc13.includes("speaker")) return "audio";
-    if (desc13.includes("composite")) return "composite";
-    return "unknown";
-  }
-  async checkSoftwareLicenseCompliance(deviceId, installedSoftware) {
-    const licensedSoftware = await this.getLicensedSoftwareList();
-    for (const software of installedSoftware) {
-      const licenseInfo = licensedSoftware.find(
-        (ls) => software.name?.toLowerCase().includes(ls.name.toLowerCase())
-      );
-      if (licenseInfo) {
-        if (licenseInfo.licenses_available <= licenseInfo.licenses_used) {
-          await storage.createAlert({
-            device_id: deviceId,
-            category: "compliance",
-            severity: "medium",
-            message: `License compliance issue: ${software.name}`,
-            metadata: {
-              software,
-              license_info: licenseInfo,
-              violation_type: "license_exceeded"
-            },
-            is_active: true
-          });
-        }
-      }
-    }
-  }
-  async processAllDevicesForAlerts() {
-    try {
-      console.log("Processing all devices for security alerts...");
-      const devices2 = await storage.getDevices();
-      for (const device of devices2) {
-        const reports = await storage.getDeviceReports(device.id, 1);
-        if (reports.length === 0) continue;
-        const latestReport = reports[0];
-        let rawData;
-        try {
-          rawData = typeof latestReport.raw_data === "string" ? JSON.parse(latestReport.raw_data) : latestReport.raw_data;
-        } catch (e) {
-          continue;
-        }
-        const usbDevices = rawData?.usb_devices || [];
-        if (usbDevices.length > 0) {
-          await this.checkUSBCompliance(device.id, usbDevices);
-        }
-        const software = rawData?.software?.installed || [];
-        if (software.length > 0) {
-          await this.checkVulnerabilities(device.id, software);
-          await this.checkSoftwareLicenseCompliance(device.id, software);
-        }
-      }
-      console.log("Completed security alert processing for all devices");
-    } catch (error) {
-      console.error("Error processing devices for alerts:", error);
-    }
-  }
-  async checkVulnerabilities(deviceId, installedSoftware) {
-    try {
-      console.log(
-        `Checking vulnerabilities for device ${deviceId} with ${installedSoftware.length} software packages`
-      );
-      if (!installedSoftware || installedSoftware.length === 0) {
-        console.log("No software packages to check for vulnerabilities");
-        return [];
-      }
-      const vulnerabilities = [];
-      const knownVulnerabilities = [
-        {
-          software_pattern: "chrome",
-          version_pattern: /^1[0-3][0-9]/,
-          cve_id: "CVE-2024-0001",
-          severity: "high",
-          description: "Remote code execution vulnerability",
-          patch_available: true
-        },
-        {
-          software_pattern: "firefox",
-          version_pattern: /^[1-9][0-9]/,
-          cve_id: "CVE-2024-0002",
-          severity: "medium",
-          description: "Cross-site scripting vulnerability",
-          patch_available: true
-        }
-      ];
-      for (const software of installedSoftware) {
-        const softwareName = software.name?.toLowerCase() || "";
-        const version = software.version || "";
-        const matchingVulns = knownVulnerabilities.filter(
-          (vuln) => softwareName.includes(vuln.software_pattern) && vuln.version_pattern.test(version)
-        );
-        if (matchingVulns.length > 0) {
-          vulnerabilities.push({
-            software_name: software.name,
-            version,
-            cve_matches: matchingVulns.map((v) => ({
-              cve_id: v.cve_id,
-              severity: v.severity,
-              description: v.description,
-              patch_available: v.patch_available
-            }))
-          });
-          const criticalVulns = matchingVulns.filter(
-            (v) => v.severity === "high" || v.severity === "critical"
-          );
-          if (criticalVulns.length > 0) {
-            await storage.createAlert({
-              device_id: deviceId,
-              category: "security",
-              severity: criticalVulns.some((v) => v.severity === "critical") ? "critical" : "high",
-              message: `Security vulnerability detected in ${software.name}`,
-              metadata: {
-                software,
-                vulnerabilities: criticalVulns,
-                patch_available: criticalVulns.some((v) => v.patch_available)
-              },
-              is_active: true
-            });
-          }
-        }
-      }
-      console.log(`Found ${vulnerabilities.length} vulnerable packages`);
-      return vulnerabilities;
-    } catch (error) {
-      console.error("Error in checkVulnerabilities:", error);
-      return [];
-    }
-  }
-  async getLicensedSoftwareList() {
-    return [
-      {
-        name: "Microsoft Office",
-        licenses_purchased: 100,
-        licenses_used: 85,
-        licenses_available: 15,
-        cost_per_license: 149.99
-      },
-      {
-        name: "Adobe Acrobat",
-        licenses_purchased: 50,
-        licenses_used: 52,
-        licenses_available: -2,
-        cost_per_license: 179.88
-      }
-    ];
-  }
-  // async checkVulnerabilities(deviceId: string, software: any[] = []) {
-  //   const vulnerabilities = [];
-  //   // Mock vulnerability database - in production, this would connect to CVE databases
-  //   const knownVulnerabilities = {
-  //     'Microsoft Office': {
-  //       versions: ['16.0.15629.20196', '16.0.15028.20160'],
-  //       cves: ['CVE-2024-21413', 'CVE-2024-20683'],
-  //       severity: 'high'
-  //     },
-  //     'Google Chrome': {
-  //       versions: ['120.0.6099.109', '119.0.6045.199'],
-  //       cves: ['CVE-2024-0519', 'CVE-2024-0518'],
-  //       severity: 'critical'
-  //     },
-  //     'Adobe Acrobat': {
-  //       versions: ['23.008.20470', '23.006.20360'],
-  //       cves: ['CVE-2024-20658', 'CVE-2024-20659'],
-  //       severity: 'medium'
-  //     }
-  //   };
-  //   for (const app of software) {
-  //     if (app.name && app.version) {
-  //       // Check if software matches known vulnerabilities
-  //       for (const [vulnSoftware, vulnData] of Object.entries(knownVulnerabilities)) {
-  //         if (app.name.toLowerCase().includes(vulnSoftware.toLowerCase())) {
-  //           if (vulnData.versions.includes(app.version)) {
-  //             vulnerabilities.push({
-  //               software_name: app.name,
-  //               version: app.version,
-  //               cve_matches: vulnData.cves.map(cve => ({
-  //                 cve_id: cve,
-  //                 severity: vulnData.severity,
-  //                 patch_available: Math.random() < 0.8 // 80% chance patch is available
-  //               }))
-  //             });
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   return vulnerabilities;
-  // }
-  async getSecurityOverview() {
-    try {
-      const timeout = new Promise(
-        (_, reject) => setTimeout(() => reject(new Error("Security overview timeout")), 5e3)
-      );
-      const dataPromise = this.getSecurityData();
-      const result = await Promise.race([dataPromise, timeout]);
-      return result;
-    } catch (error) {
-      console.error("Security overview error:", error);
-      return this.getFallbackSecurityData();
-    }
-  }
-  async getSecurityData() {
-    try {
-      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const alertsResult = await pool3.query(`
-        SELECT COUNT(*) as count FROM alerts
-        WHERE is_active = true AND category IN ('security', 'vulnerability')
-      `);
-      const devicesResult = await pool3.query(
-        "SELECT COUNT(*) as count FROM devices"
-      );
-      const activeThreats = parseInt(alertsResult.rows[0]?.count) || 0;
-      const totalDevices = parseInt(devicesResult.rows[0]?.count) || 0;
-      return {
-        threatLevel: activeThreats > 5 ? "high" : activeThreats > 2 ? "medium" : "low",
-        activeThreats,
-        vulnerabilities: {
-          critical: Math.floor(activeThreats * 0.2),
-          high: Math.floor(activeThreats * 0.3),
-          medium: Math.floor(activeThreats * 0.3),
-          low: Math.floor(activeThreats * 0.2)
-        },
-        lastScan: (/* @__PURE__ */ new Date()).toISOString(),
-        complianceScore: Math.max(85, 100 - activeThreats * 2),
-        securityAlerts: activeThreats,
-        firewallStatus: "active",
-        antivirusStatus: "active",
-        patchCompliance: Math.max(75, 100 - activeThreats * 3)
-      };
-    } catch (error) {
-      console.error("Error getting security overview:", error);
-      return this.getFallbackSecurityData();
-    }
-  }
-  getFallbackSecurityData() {
-    return {
-      threatLevel: "low",
-      activeThreats: 0,
-      vulnerabilities: { critical: 0, high: 2, medium: 5, low: 8 },
-      lastScan: (/* @__PURE__ */ new Date()).toISOString(),
-      complianceScore: 85,
-      securityAlerts: 3,
-      firewallStatus: "active",
-      antivirusStatus: "active",
-      patchCompliance: 78
-    };
-  }
-};
-var securityService = new SecurityService();
 
 // server/routes/cab-routes.ts
 init_cab_service();
@@ -22554,40 +22738,109 @@ async function registerRoutes(app2) {
       if (!hostname2) {
         return res.status(400).json({ message: "Hostname is required" });
       }
-      let device = await storage.getDeviceByHostname(hostname2);
+      let device;
+      try {
+        device = await storage.getDeviceByHostname(hostname2);
+      } catch (error) {
+        console.error("Error getting device by hostname:", error);
+        device = null;
+      }
       if (!device) {
-        device = await storage.createDevice({
-          hostname: hostname2,
-          assigned_user: data.current_user || null,
-          os_name: data.os_info?.name || data.system_info?.platform || null,
-          os_version: data.os_info?.version || data.system_info?.release || null,
-          ip_address: req.ip || null,
-          status: "online",
-          last_seen: /* @__PURE__ */ new Date()
-        });
+        try {
+          device = await storage.createDevice({
+            hostname: hostname2,
+            assigned_user: data.current_user || null,
+            os_name: data.os_info?.name || data.system_info?.platform || null,
+            os_version: data.os_info?.version || data.system_info?.release || null,
+            ip_address: req.ip || null,
+            status: "online",
+            last_seen: /* @__PURE__ */ new Date()
+          });
+        } catch (createError) {
+          console.error("Error creating device:", createError);
+          return res.status(500).json({ message: "Failed to create device" });
+        }
       } else {
-        await storage.updateDevice(device.id, {
-          status: "online",
-          last_seen: /* @__PURE__ */ new Date()
-        });
+        try {
+          await storage.updateDevice(device.id, {
+            status: "online",
+            last_seen: /* @__PURE__ */ new Date()
+          });
+        } catch (updateError) {
+          console.error("Error updating device:", updateError);
+        }
       }
+      const extractMetrics2 = (reportData2) => {
+        try {
+          const metrics2 = {
+            cpu_usage: null,
+            memory_usage: null,
+            disk_usage: null,
+            network_io: null
+          };
+          if (reportData2.system_health?.cpu_usage !== void 0) {
+            metrics2.cpu_usage = parseFloat(reportData2.system_health.cpu_usage);
+          } else if (reportData2.hardware?.cpu?.usage_percent !== void 0) {
+            metrics2.cpu_usage = parseFloat(reportData2.hardware.cpu.usage_percent);
+          }
+          if (reportData2.system_health?.memory_usage !== void 0) {
+            metrics2.memory_usage = parseFloat(reportData2.system_health.memory_usage);
+          } else if (reportData2.hardware?.memory?.percentage !== void 0) {
+            metrics2.memory_usage = parseFloat(reportData2.hardware.memory.percentage);
+          }
+          if (reportData2.system_health?.disk_usage !== void 0) {
+            metrics2.disk_usage = parseFloat(reportData2.system_health.disk_usage);
+          } else if (reportData2.storage?.[0]?.usage_percent !== void 0) {
+            metrics2.disk_usage = parseFloat(reportData2.storage[0].usage_percent);
+          }
+          if (reportData2.network?.io_counters?.bytes_sent !== void 0) {
+            metrics2.network_io = parseInt(reportData2.network.io_counters.bytes_sent);
+          }
+          return metrics2;
+        } catch (error) {
+          console.error("Error extracting metrics:", error);
+          return {
+            cpu_usage: null,
+            memory_usage: null,
+            disk_usage: null,
+            network_io: null
+          };
+        }
+      };
       const reportData = req.body;
-      const deviceReport = await storage.createDeviceReport({
-        device_id: device.id,
-        cpu_usage: reportData.cpu_usage?.toString() || null,
-        memory_usage: reportData.memory_usage?.toString() || null,
-        disk_usage: reportData.disk_usage?.toString() || null,
-        network_io: reportData.network_io?.toString() || null,
-        raw_data: typeof reportData === "object" ? JSON.stringify(reportData) : reportData
-      });
-      if (reportData.usb_devices && Array.isArray(reportData.usb_devices)) {
-        await securityService.checkUSBCompliance(device.id, reportData.usb_devices);
+      const metrics = extractMetrics2(reportData);
+      try {
+        await storage.createDeviceReport({
+          device_id: device.id,
+          cpu_usage: metrics.cpu_usage?.toString() || null,
+          memory_usage: metrics.memory_usage?.toString() || null,
+          disk_usage: metrics.disk_usage?.toString() || null,
+          network_io: metrics.network_io?.toString() || null,
+          raw_data: typeof reportData === "object" ? JSON.stringify(reportData) : reportData
+        });
+      } catch (reportError) {
+        console.error("Error creating device report:", reportError);
       }
-      if (reportData.software?.installed && Array.isArray(reportData.software.installed)) {
-        await securityService.checkVulnerabilities(device.id, reportData.software.installed);
-        await securityService.checkSoftwareLicenseCompliance(device.id, reportData.software.installed);
+      if (data.usb_devices && Array.isArray(data.usb_devices)) {
+        try {
+          const usbDevicesWithAgentId = data.usb_devices.map((usbDevice) => ({
+            ...usbDevice,
+            agent_id: device.id,
+            detected_at: (/* @__PURE__ */ new Date()).toISOString()
+          }));
+          console.log(`Processing ${usbDevicesWithAgentId.length} USB devices for agent ${device.id}`);
+        } catch (usbError) {
+          console.error("Error processing USB devices:", usbError);
+        }
       }
-      await securityService.processAllDevicesForAlerts();
+      try {
+        if (reportData.software?.installed && Array.isArray(reportData.software.installed)) {
+          const { securityService: securityService2 } = await Promise.resolve().then(() => (init_security_service(), security_service_exports));
+          await securityService2.checkVulnerabilities(device.id, reportData.software.installed);
+        }
+      } catch (securityError) {
+        console.error("Error processing security checks:", securityError);
+      }
       res.json({ message: "Report saved successfully" });
     } catch (error) {
       console.error("Error processing report:", error);
