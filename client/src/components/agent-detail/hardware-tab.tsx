@@ -4,14 +4,49 @@ import { Cpu, MemoryStick, Monitor, Usb, HardDrive } from "lucide-react";
 import { AgentDataProcessor } from "@/lib/agent-data-processor";
 import type { Agent } from "@/types/agent-types";
 
+import type { USBDevice } from "@/lib/usb-device-processor";
+
+interface HardwareInfo {
+  processor: string;
+  physicalCores: string;
+  logicalCores: string;
+  cpuFreq: string;
+  maxFreq: string;
+  totalMemory: string;
+  usedMemory: string;
+  availableMemory: string;
+}
+
+interface SystemInfo {
+  architecture: string;
+  manufacturer: string;
+  model: string;
+  serialNumber: string;
+}
+
+interface NetworkInfo {
+  macAddresses: string;
+}
+
+interface Storage {
+  id: string;
+  name: string;
+  size: string;
+  usage: number;
+}
+
+interface Metrics {
+  memoryUsage: number;
+}
+
 interface HardwareTabProps {
   agent: Agent;
-  hardwareInfo: any;
-  systemInfo: any;
-  networkInfo: any;
-  extractedUsbDevices: any[];
-  storage: any[];
-  metrics: any;
+  hardwareInfo: HardwareInfo;
+  systemInfo: SystemInfo;
+  networkInfo: NetworkInfo;
+  extractedUsbDevices: USBDevice[];
+  storage: Storage[];
+  metrics: Metrics;
 }
 
 const Stat = ({ label, value }: { label: string; value: string }) => (

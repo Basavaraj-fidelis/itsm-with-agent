@@ -17,6 +17,7 @@ import {
 import { useEffect, useState, useMemo } from "react";
 import { AIInsights } from "./ai-insights";
 import { AgentDataProcessor } from "@/lib/agent-data-processor";
+import { USBDeviceProcessor } from "@/lib/usb-device-processor";
 import { OverviewTab } from "./overview-tab";
 import { HardwareTab } from "./hardware-tab";
 import { NetworkTab } from "./network-tab";
@@ -29,77 +30,6 @@ interface AgentTabsProps {
   agent: Agent;
   processedData?: any;
 }
-
-// Helper function to merge current USB data with historical data
-const mergeUSBData = (currentDevices: any[], historicalDevices: any[]) => {
-  // Create a map to track unique devices by a more specific composite key
-  const deviceMap = new Map();
-
-  // Process historical devices first
-  (historicalDevices || []).forEach((device) => {
-    if (device && device.device_id) {
-      // Use a composite key including vendor/product IDs to better identify unique devices
-      const vendorId = device.vendor_id || 'unknown';
-      const productId = device.product_id || 'unknown';
-      const key = `${device.device_id}-${vendorId}-${productId}`;
-      
-      deviceMap.set(key, {
-        ...device,
-        is_connected: false, // Mark historical as disconnected by default
-        _composite_key: key
-      });
-    }
-  });
-
-  // Process current devices and update/add them
-  (currentDevices || []).forEach((current) => {
-    if (current && current.device_id) {
-      const vendorId = current.vendor_id || 'unknown';
-      const productId = current.product_id || 'unknown';
-      const key = `${current.device_id}-${vendorId}-${productId}`;
-      const existing = deviceMap.get(key);
-      
-      if (existing) {
-        // Update existing device with current data, preserving historical connection times
-        deviceMap.set(key, {
-          ...existing,
-          ...current,
-          is_connected: true,
-          last_seen: new Date().toISOString(),
-          connection_time: existing.connection_time || current.connection_time || new Date().toISOString(),
-          first_seen: existing.first_seen || current.first_seen || new Date().toISOString(),
-          _composite_key: key
-        });
-      } else {
-        // Add new device
-        deviceMap.set(key, {
-          ...current,
-          connection_time: current.connection_time || new Date().toISOString(),
-          first_seen: current.first_seen || new Date().toISOString(),
-          is_connected: true,
-          _composite_key: key
-        });
-      }
-    }
-  });
-
-  // Convert map back to array and filter out any invalid entries
-  const uniqueDevices = Array.from(deviceMap.values()).filter(device => device && device.device_id);
-  
-  // Remove duplicates based on device_id and connection time if they still exist
-  const finalDevices = [];
-  const seenDevices = new Set();
-  
-  for (const device of uniqueDevices) {
-    const deviceKey = `${device.device_id}-${device.connection_time}`;
-    if (!seenDevices.has(deviceKey)) {
-      seenDevices.add(deviceKey);
-      finalDevices.push(device);
-    }
-  }
-  
-  return finalDevices;
-};
 
 export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
   const [usbHistory, setUsbHistory] = useState([]);
@@ -122,22 +52,34 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
           setUsbHistory(data);
         } else if (response.status === 403) {
           console.warn("Access forbidden for USB devices endpoint");
+          setUsbHistory([]); // Set empty array on permission error
         } else {
           console.error(
             "Failed to fetch USB devices:",
             response.status,
             response.statusText,
           );
+          setUsbHistory([]); // Set empty array on other errors
         }
       } catch (error) {
         console.error("Error fetching USB history:", error);
+        setUsbHistory([]); // Set empty array on network/parse errors
       }
     };
 
     if (agent.id) {
-      fetchUSBHistory();
+      fetchUSBHistory().catch(error => {
+        console.error("Unhandled error in fetchUSBHistory:", error);
+        setUsbHistory([]);
+      });
+      
       // Refresh USB history every 30 seconds
-      const interval = setInterval(fetchUSBHistory, 30000);
+      const interval = setInterval(() => {
+        fetchUSBHistory().catch(error => {
+          console.error("Unhandled error in fetchUSBHistory interval:", error);
+        });
+      }, 30000);
+      
       return () => clearInterval(interval);
     }
   }, [agent.id]);
@@ -183,7 +125,7 @@ export default function AgentTabs({ agent, processedData }: AgentTabsProps) {
         systemInfo: AgentDataProcessor.extractSystemInfo(agent, rawData),
         networkInfo: AgentDataProcessor.extractNetworkInfo(agent, rawData),
         hardwareInfo: AgentDataProcessor.extractHardwareInfo(rawData),
-        usbDevices: mergeUSBData(
+        usbDevices: USBDeviceProcessor.deduplicateUSBDevices(
           AgentDataProcessor.extractUSBDevices(rawData) || [],
           usbHistory,
         ),
