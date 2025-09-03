@@ -274,6 +274,16 @@ export default function NetworkScan() {
   };
 
   const initiateScan = async () => {
+    // Check WebSocket status first
+    if (websocketStatus && websocketStatus.totalConnections === 0) {
+      toast({
+        title: "Connection Error",
+        description: "No agents are connected via WebSocket. Please ensure at least one agent is running and connected before starting a scan.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate input based on scan mode
     if (scanMode === 'subnet' && selectedSubnets.length === 0) {
       toast({
@@ -330,13 +340,15 @@ export default function NetworkScan() {
         // Poll for completion
         pollScanProgress(data.session_id);
       } else {
-        throw new Error('Failed to initiate scan');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to initiate scan');
       }
     } catch (error) {
       console.error('Error initiating scan:', error);
+      const errorMessage = error.message || "Failed to initiate network scan";
       toast({
         title: "Error",
-        description: "Failed to initiate network scan",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

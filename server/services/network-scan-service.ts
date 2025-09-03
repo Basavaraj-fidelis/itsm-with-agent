@@ -414,6 +414,25 @@ class NetworkScanService {
           const bestAgent = await this.findBestAgentForIPRange(ipRange);
           if (bestAgent) {
             agentId = bestAgent.id;
+          } else {
+            // Fallback: use any available online agent for cross-subnet scanning
+            const onlineAgents = await db
+              .select()
+              .from(devices)
+              .where(
+                and(
+                  eq(devices.status, 'online'),
+                  isNotNull(devices.ip_address)
+                )
+              );
+            
+            if (onlineAgents.length > 0) {
+              const fallbackAgent = onlineAgents.sort((a, b) => 
+                new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
+              )[0];
+              agentId = fallbackAgent.id;
+              console.log(`Using fallback agent ${fallbackAgent.hostname} for IP range: ${ipRange}`);
+            }
           }
         }
 
@@ -521,6 +540,14 @@ class NetworkScanService {
       const connectedAgentIds = websocketService.getConnectedAgentIds();
       console.log(`Connected agents via WebSocket: ${connectedAgentIds.join(', ')}`);
       
+      if (connectedAgentIds.length === 0) {
+        console.error('No agents are currently connected via WebSocket');
+        session.status = 'failed';
+        session.completed_at = new Date();
+        this.activeScanSessions.set(sessionId, session);
+        throw new Error('No agents are currently connected via WebSocket. Please ensure at least one agent is running and connected before starting a network scan.');
+      }
+      
       const availableAgents = scanningAgents.filter(agent => {
         const isConnected = websocketService.isAgentConnected(agent.agent_id);
         if (!isConnected) {
@@ -534,7 +561,7 @@ class NetworkScanService {
         session.status = 'failed';
         session.completed_at = new Date();
         this.activeScanSessions.set(sessionId, session);
-        throw new Error('No scanning agents are currently connected via WebSocket');
+        throw new Error('None of the selected agents are currently connected via WebSocket. Please ensure agents are running and connected before starting a network scan.');
       }
 
       console.log(`Using ${availableAgents.length}/${scanningAgents.length} connected agents for scanning`);
