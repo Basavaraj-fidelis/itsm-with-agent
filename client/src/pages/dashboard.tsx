@@ -135,6 +135,9 @@ export default function Dashboard() {
     refetchInterval: 60000,
     retry: 1,
     staleTime: 30000,
+    onError: (error) => {
+      console.error("AI insights query error:", error);
+    }
   });
 
   const { data: securityOverview } = useQuery({
@@ -156,10 +159,13 @@ export default function Dashboard() {
         };
       }
     },
-    refetchInterval: 60000, // Reduced frequency to prevent overload
+    refetchInterval: 60000,
     retry: 2,
     retryDelay: 2000,
     staleTime: 45000,
+    onError: (error) => {
+      console.error("Security overview query error:", error);
+    }
   });
 
   // Handle different response formats from the API

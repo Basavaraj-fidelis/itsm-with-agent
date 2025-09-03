@@ -50,12 +50,24 @@ export class DeviceStorage {
           }
         }
 
+        // Standardize status determination logic
+        const now = new Date();
+        const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
+        const minutesSinceLastSeen = lastSeen ? 
+          Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+
+        // Agent is online if last seen within 5 minutes
+        const isOnline = minutesSinceLastSeen !== null && minutesSinceLastSeen < 5;
+        const actualStatus = isOnline ? "online" : "offline";
+
         return {
           ...device,
+          status: actualStatus, // Override with calculated status
           latest_report: parsedLatestReport,
-          // Ensure consistent display values
           display_ip: device.ip_address,
-          display_hostname: device.hostname
+          display_hostname: device.hostname,
+          minutes_since_last_seen: minutesSinceLastSeen,
+          is_online: isOnline
         };
       });
     } catch (error) {

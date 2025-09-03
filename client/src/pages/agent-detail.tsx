@@ -511,20 +511,21 @@ export default function AgentDetail() {
                   {/* Device Status */}
                   <div className="flex items-center space-x-2">
                     {(() => {
-                      const lastSeen = device?.last_seen ? new Date(device.last_seen) : null;
+                      const lastSeen = agent.last_seen ? new Date(agent.last_seen) : null;
                       const now = new Date();
                       const minutesOld = lastSeen ? Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
 
                       let statusColor = "bg-gray-500";
                       let statusText = "Unknown";
 
+                      // Use consistent 5-minute threshold
                       if (minutesOld !== null) {
-                        if (minutesOld <= 10) {
+                        if (minutesOld < 5) {
                           statusColor = "bg-green-500";
                           statusText = "Online";
                         } else if (minutesOld <= 60) {
                           statusColor = "bg-orange-500";
-                          statusText = "Warning";
+                          statusText = "Recently Offline";
                         } else {
                           statusColor = "bg-red-500";
                           statusText = "Offline";
@@ -536,8 +537,7 @@ export default function AgentDetail() {
                           <div className={`w-3 h-3 rounded-full ${statusColor}`}></div>
                           <span className="capitalize font-medium">{statusText}</span>
                           <span className="text-gray-500">
-                            • Last seen{" "}
-                            {lastSeen ? lastSeen.toLocaleString() : "Never"}
+                            • {minutesOld !== null ? `${minutesOld}m ago` : "Never"}
                           </span>
                         </>
                       );

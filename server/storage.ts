@@ -482,31 +482,31 @@ export class MemStorage implements IStorage {
     offline_devices: number;
     active_alerts: number;
   }> {
-    const allDevices = Array.from(this.devices.values());
-    const activeAlerts = Array.from(this.alerts.values()).filter(
-      (alert) => alert.is_active,
-    );
+    const devices = await this.getDevices();
+    const alerts = await this.getAlerts();
 
-    // Update offline status for devices that haven't been seen for 5+ minutes
+    // Use consistent status calculation
     const now = new Date();
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    let onlineCount = 0;
+    let offlineCount = 0;
 
-    allDevices.forEach((device) => {
+    devices.forEach(device => {
       const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-      if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
-        device.status = "offline";
-        this.devices.set(device.id, device);
+      const minutesSinceLastSeen = lastSeen ?
+        Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
+
+      if (minutesSinceLastSeen !== null && minutesSinceLastSeen < 5) {
+        onlineCount++;
+      } else {
+        offlineCount++;
       }
     });
 
     return {
-      total_devices: allDevices.length,
-      online_devices: allDevices.filter((device) => device.status === "online")
-        .length,
-      offline_devices: allDevices.filter(
-        (device) => device.status === "offline",
-      ).length,
-      active_alerts: activeAlerts.length,
+      total_devices: devices.length,
+      online_devices: onlineCount,
+      offline_devices: offlineCount,
+      active_alerts: alerts.filter(a => a.is_active).length,
     };
   }
 }
@@ -876,7 +876,7 @@ If you continue to have issues, contact IT support.`,
 ### 2. Restart Network Components
 **Order is important - follow this sequence:**
 1. **Unplug Router**: Wait 30 seconds
-2. **Unplug Modem**: Wait 30 seconds  
+2. **Unplug Modem**: Wait 30 seconds
 3. **Restart Computer**: Complete shutdown and restart
 4. **Plug Modem Back In**: Wait 2 minutes for full startup
 5. **Plug Router Back In**: Wait 2 minutes for full startup
@@ -959,7 +959,7 @@ netsh int ip reset
 1. **Open Office App**: Start Word/Excel/PowerPoint
 2. **File > Open**: Look for "Recover Unsaved Documents"
 3. **Document Recovery Pane**: May appear automatically on startup
-4. **Temp Files Location**: 
+4. **Temp Files Location**:
    - Windows: \`C:\\Users\\[username]\\AppData\\Roaming\\Microsoft\\[App]\\UnsavedFiles\`
 
 ### Corrupted File Recovery
@@ -1206,10 +1206,10 @@ netsh int ip reset
 - Test print after installation finishes
 
 **Manual Driver Installation:**
-1. **Identify Printer Model**: Check sticker on printer
+1. **Identify Printer Model**: Sticker on printer
 2. **Download Drivers**: From manufacturer website
    - HP: hp.com/support
-   - Canon: canon.com/support  
+   - Canon: canon.com/support
    - Epson: epson.com/support
 3. **Run Installer**: Follow manufacturer instructions
 4. **Restart Computer**: If prompted by installer
@@ -1452,7 +1452,7 @@ ipconfig /flushdns
 
 ### Prohibited Software
 - Peer-to-peer applications
-- Cracked/pirated software  
+- Cracked/pirated software
 - Personal gaming software
 - Unapproved browser extensions
 
@@ -1719,11 +1719,11 @@ smartphones
       const result = await pool.query(`
         SELECT d.*, dr.cpu_usage, dr.memory_usage, dr.disk_usage, dr.network_io, dr.collected_at, dr.raw_data
         FROM devices d
-        LEFT JOIN device_reports dr ON d.id = dr.device_id 
+        LEFT JOIN device_reports dr ON d.id = dr.device_id
         AND dr.id = (
-          SELECT id FROM device_reports 
-          WHERE device_id = d.id 
-          ORDER BY collected_at DESC 
+          SELECT id FROM device_reports
+          WHERE device_id = d.id
+          ORDER BY collected_at DESC
           LIMIT 1
         )
         ORDER BY d.created_at DESC
@@ -1736,13 +1736,13 @@ smartphones
         const lastSeen = row.last_seen ? new Date(row.last_seen) : null;
         const lastReport = row.collected_at ? new Date(row.collected_at) : null;
 
-        const minutesSinceLastSeen = lastSeen ? 
+        const minutesSinceLastSeen = lastSeen ?
           Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
-        const minutesSinceLastReport = lastReport ? 
+        const minutesSinceLastReport = lastReport ?
           Math.floor((now.getTime() - lastReport.getTime()) / (1000 * 60)) : null;
 
         // Consider device online if it has recent activity
-        const isOnline = (minutesSinceLastSeen !== null && minutesSinceLastSeen < 10) || 
+        const isOnline = (minutesSinceLastSeen !== null && minutesSinceLastSeen < 10) ||
                         (minutesSinceLastReport !== null && minutesSinceLastReport < 10);
 
         return {
@@ -1862,8 +1862,8 @@ smartphones
     try {
       const { pool } = await import('./db');
       const result = await pool.query(
-        `SELECT * FROM device_reports 
-         WHERE device_id = $1 
+        `SELECT * FROM device_reports
+         WHERE device_id = $1
          AND collected_at >= NOW() - INTERVAL '${days} days'
          ORDER BY collected_at DESC`,
         [deviceId]
@@ -2085,10 +2085,10 @@ smartphones
       const { pool } = await import("./db");
       const result = await pool.query(
         `
-        SELECT 
-          id, title, content, author_email, category, tags, 
+        SELECT
+          id, title, content, author_email, category, tags,
           created_at, updated_at, views, helpful_votes, status
-        FROM knowledge_base 
+        FROM knowledge_base
         WHERE id = $1
       `,
         [id],
@@ -2119,8 +2119,8 @@ smartphones
       const { pool } = await import("./db");
       await pool.query(
         `
-        UPDATE knowledge_base 
-        SET views = COALESCE(views, 0) + 1 
+        UPDATE knowledge_base
+        SET views = COALESCE(views, 0) + 1
         WHERE id = $1
       `,
         [id],
@@ -2143,9 +2143,9 @@ smartphones
 
         // First, let's check if the users table exists and what columns it has
         const tableCheck = await pool.query(`
-          SELECT column_name, data_type 
-          FROM information_schema.columns 
-          WHERE table_name = 'users' 
+          SELECT column_name, data_type
+          FROM information_schema.columns
+          WHERE table_name = 'users'
           ORDER BY ordinal_position
         `);
 
@@ -2153,17 +2153,17 @@ smartphones
 
         // Build query with proper WHERE clause structure
         let query = `
-          SELECT 
-            id, email, 
+          SELECT
+            id, email,
             CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) as name,
-            COALESCE(role, 'user') as role, 
-            COALESCE(department, location, '') as department, 
-            COALESCE(phone, '') as phone, 
-            COALESCE(is_active, true) as is_active, 
+            COALESCE(role, 'user') as role,
+            COALESCE(department, location, '') as department,
+            COALESCE(phone, '') as phone,
+            COALESCE(is_active, true) as is_active,
             created_at, updated_at,
             first_name, last_name, username, job_title, location, employee_id, manager_id,
             last_login, is_locked, failed_login_attempts
-          FROM users 
+          FROM users
           WHERE COALESCE(is_active, true) = true
         `;
 
@@ -2173,7 +2173,7 @@ smartphones
         if (filters.search) {
           paramCount++;
           query += ` AND (
-            COALESCE(first_name, '') ILIKE $${paramCount} OR 
+            COALESCE(first_name, '') ILIKE $${paramCount} OR
             COALESCE(last_name, '') ILIKE $${paramCount} OR
             email ILIKE $${paramCount} OR
             COALESCE(username, '') ILIKE $${paramCount}
@@ -2259,10 +2259,10 @@ smartphones
       const { pool } = await import("./db");
       const result = await pool.query(
         `
-        SELECT 
-          id, email, name, role, department, phone, is_active, 
+        SELECT
+          id, email, name, role, department, phone, is_active,
           created_at, updated_at, first_name, last_name, username
-        FROM users 
+        FROM users
         WHERE id = $1
       `,
         [id],
@@ -2298,12 +2298,12 @@ smartphones
       const result = await pool.query(
         `
         INSERT INTO users (
-          first_name, last_name, username, email, password_hash, role, 
+          first_name, last_name, username, email, password_hash, role,
           department, phone, employee_id, job_title, is_active
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING 
-          id, email, username, first_name, last_name, role, department, 
+        RETURNING
+          id, email, username, first_name, last_name, role, department,
           phone, employee_id, job_title, is_active, created_at, updated_at
       `,
         [
@@ -2370,13 +2370,13 @@ smartphones
       params.push(id);
 
       const query = `
-        UPDATE users 
+        UPDATE users
         SET ${setClause.join(", ")}
         WHERE id = $${paramCount}
-        RETURNING 
-          id, email, username, first_name, last_name, role, 
+        RETURNING
+          id, email, username, first_name, last_name, role,
           department, phone, is_active, created_at, updated_at,
-          job_title, location, employee_id, manager_id, last_login, 
+          job_title, location, employee_id, manager_id, last_login,
           is_locked, failed_login_attempts
       `;
 
@@ -2385,7 +2385,7 @@ smartphones
       if (result.rows.length > 0) {
         const user = result.rows[0];
         // Add computed name field for consistency
-        user.name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 
+        user.name = `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
                    user.username || user.email?.split('@')[0];
         return user;
       }
@@ -2421,8 +2421,8 @@ smartphones
       const offset = (page - 1) * limit;
 
       let query = `
-        SELECT 
-          id, title, content, author_email, category, tags, 
+        SELECT
+          id, title, content, author_email, category, tags,
           created_at, updated_at, views, helpful_votes, status
         FROM knowledge_base
         WHERE 1=1
@@ -2508,32 +2508,31 @@ smartphones
     offline_devices: number;
     active_alerts: number;
   }> {
-    const allDevices = await this.getDevices();
-    const activeAlerts = await this.getActiveAlerts();
+    const devices = await this.getDevices();
+    const alerts = await this.getAlerts();
 
-    // Update offline status for devices that haven't been seen for 5+ minutes
+    // Use consistent status calculation
     const now = new Date();
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    let onlineCount = 0;
+    let offlineCount = 0;
 
-    for (const device of allDevices) {
+    devices.forEach(device => {
       const lastSeen = device.last_seen ? new Date(device.last_seen) : null;
-      if (lastSeen && lastSeen < fiveMinutesAgo && device.status === "online") {
-        await this.updateDevice(device.id, { status: "offline" });
-      }
-    }
+      const minutesSinceLastSeen = lastSeen ?
+        Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60)) : null;
 
-    // Refetch devices after status updates
-    const updatedDevices = await this.getDevices();
+      if (minutesSinceLastSeen !== null && minutesSinceLastSeen < 5) {
+        onlineCount++;
+      } else {
+        offlineCount++;
+      }
+    });
 
     return {
-      total_devices: updatedDevices.length,
-      online_devices: updatedDevices.filter(
-        (device) => device.status === "online",
-      ).length,
-      offline_devices: updatedDevices.filter(
-        (device) => device.status === "offline",
-      ).length,
-      active_alerts: activeAlerts.length,
+      total_devices: devices.length,
+      online_devices: onlineCount,
+      offline_devices: offlineCount,
+      active_alerts: alerts.filter(a => a.is_active).length,
     };
   }
 
@@ -2615,9 +2614,9 @@ smartphones
       // Enhanced Disk extraction with multiple fallbacks
       if (data.storage?.disks && Array.isArray(data.storage.disks) && data.storage.disks.length > 0) {
         // Find C:\ drive first (Windows), then / (Linux), then any drive
-        const primaryDisk = data.storage.disks.find(disk => 
+        const primaryDisk = data.storage.disks.find(disk =>
           disk.device === 'C:\\' || disk.mountpoint === 'C:\\'
-        ) || data.storage.disks.find(disk => 
+        ) || data.storage.disks.find(disk =>
           disk.mountpoint === '/' || disk.device === '/'
         ) || data.storage.disks[0];
 
@@ -2691,9 +2690,9 @@ smartphones
       }
 
       await this.pool.query(
-        `INSERT INTO device_reports (device_id, raw_data, cpu_usage, memory_usage, disk_usage, network_io, collected_at, created_at) 
+        `INSERT INTO device_reports (device_id, raw_data, cpu_usage, memory_usage, disk_usage, network_io, collected_at, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [deviceId, reportData.raw_data, reportData.cpu_usage, reportData.memory_usage, 
+        [deviceId, reportData.raw_data, reportData.cpu_usage, reportData.memory_usage,
          reportData.disk_usage, reportData.network_io, reportData.created_at, reportData.created_at]
       );
 
@@ -2701,9 +2700,9 @@ smartphones
       await this.updateDeviceLastSeen(deviceId);
 
       console.log(`Device report saved successfully for ${deviceId} with metrics:`, {
-        cpu: cpuUsage, 
-        memory: memoryUsage, 
-        disk: diskUsage, 
+        cpu: cpuUsage,
+        memory: memoryUsage,
+        disk: diskUsage,
         network: networkIo
       });
 

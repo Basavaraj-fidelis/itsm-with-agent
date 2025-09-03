@@ -57,6 +57,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { SystemOverview } from "./system-overview";
 
 interface AgentTabsProps {
   agent: Agent;
