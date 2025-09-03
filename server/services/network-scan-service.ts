@@ -46,6 +46,9 @@ class NetworkScanService {
     { range: "172.16.0.0/24", example: "172.16.0.50" }
   ];
 
+  // Store active sessions for real-time tracking
+  private activeSessions: Map<string, { id: string; config: NetworkScanConfig; startTime: Date; resultsReceived: number }> = new Map();
+
   async getAvailableAgents() {
     try {
       // Get online agents from different subnets
@@ -554,11 +557,13 @@ class NetworkScanService {
 
       if (connectedAgentIds.length === 0) {
         console.error('No agents are currently connected via WebSocket');
-        // Assuming 'session' refers to a variable that should be defined, but it's not.
-        // It's likely meant to be sessionRecord[0] from the earlier query.
-        // However, without clear context or definition, I'll skip this part to avoid introducing potentially incorrect logic.
-        // If 'session' was intended to be the session object to update, it should be defined here.
-        // For now, we'll rely on the try-catch block to handle errors.
+        await db.update(networkScanSessions)
+          .set({ 
+            status: 'failed', 
+            completed_at: new Date(),
+            error_message: 'No agents connected via WebSocket'
+          })
+          .where(eq(networkScanSessions.session_id, sessionId));
         throw new Error('No agents are currently connected via WebSocket. Please ensure at least one agent is running and connected before starting a network scan.');
       }
 
@@ -572,7 +577,13 @@ class NetworkScanService {
 
       if (availableAgents.length === 0) {
         console.error('No scanning agents are currently connected via WebSocket');
-        // Similar to the above, if 'session' was meant to be updated, it's not defined.
+        await db.update(networkScanSessions)
+          .set({ 
+            status: 'failed', 
+            completed_at: new Date(),
+            error_message: 'None of the selected agents are connected via WebSocket'
+          })
+          .where(eq(networkScanSessions.session_id, sessionId));
         throw new Error('None of the selected agents are currently connected via WebSocket. Please ensure agents are running and connected before starting a network scan.');
       }
 
@@ -680,8 +691,14 @@ class NetworkScanService {
 
     } catch (error) {
       console.error('Error in agent-based network scanning:', error);
-      // If 'session' was intended to be updated, it's not defined.
-      // We'll rely on the try-catch block to handle errors and re-throw.
+      // Update session status to failed if an error occurs
+      await db.update(networkScanSessions)
+        .set({ 
+          status: 'failed', 
+          completed_at: new Date(),
+          error_message: (error as Error).message || 'An unknown error occurred during network scanning'
+        })
+        .where(eq(networkScanSessions.session_id, sessionId));
       throw error;
     }
   }
@@ -758,7 +775,112 @@ class NetworkScanService {
     return 'Workstation';
   }
 
+  // This method is intended to be called by the WebSocket service when a scan is completed by an agent
+  async handleAgentScanCompletion(sessionId: string, agentId: string, scanResults: NetworkScanResult[]) {
+    console.log(`Received scan completion for session ${sessionId} from agent ${agentId}`);
 
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      console.error(`Session ${sessionId} not found for scan completion.`);
+      return;
+    }
+
+    // Store scan results in the database
+    if (scanResults.length > 0) {
+      try {
+        const dbResults = scanResults.map(result => ({
+          session_id: sessionId,
+          device_id: result.id.startsWith('agent-discovered-') ? null : result.id,
+          ip_address: result.ip,
+          hostname: result.hostname,
+          os: result.os,
+          mac_address: result.mac_address,
+          status: result.status,
+          last_seen: result.last_seen,
+          subnet: result.subnet,
+          device_type: result.device_type,
+          ports_open: result.ports_open || [],
+          response_time: result.response_time,
+          discovery_method: 'network_scan',
+          agent_id: result.id.startsWith('agent-discovered-') ? result.id.split('-')[2] : null,
+          scan_metadata: {
+            discovery_timestamp: new Date().toISOString()
+          }
+        }));
+
+        await db.insert(networkScanResults).values(dbResults);
+        console.log(`Stored ${dbResults.length} scan results for session ${sessionId}`);
+      } catch (error) {
+        console.error(`Error storing scan results for session ${sessionId}:`, error);
+      }
+    }
+
+    // Update session tracking
+    session.resultsReceived++;
+    this.activeSessions.set(sessionId, session);
+
+    // Check if all agents have completed their scans
+    const sessionRecord = await db
+      .select()
+      .from(networkScanSessions)
+      .where(eq(networkScanSessions.session_id, sessionId))
+      .limit(1);
+
+    if (sessionRecord.length > 0 && sessionRecord[0].status === 'running') {
+      const totalExpectedResults = sessionRecord[0].scanning_agents.length;
+      if (session.resultsReceived === totalExpectedResults) {
+        console.log(`All agents completed scan for session ${sessionId}. Updating session status to completed.`);
+        await db.update(networkScanSessions)
+          .set({ 
+            status: 'completed', 
+            completed_at: new Date(),
+            total_discovered: scanResults.length // Assuming scanResults contains all results aggregated
+          })
+          .where(eq(networkScanSessions.session_id, sessionId));
+        this.activeSessions.delete(sessionId); // Remove from active sessions
+      }
+    }
+  }
+
+  // This method should be called by the WebSocket service when an agent reports an error during a scan
+  async handleAgentScanError(sessionId: string, agentId: string, errorMessage: string) {
+    console.error(`Agent ${agentId} reported error for session ${sessionId}: ${errorMessage}`);
+
+    const session = this.activeSessions.get(sessionId);
+    if (!session) {
+      console.error(`Session ${sessionId} not found for scan error.`);
+      return;
+    }
+
+    // Potentially update session status if all agents fail or a critical error occurs
+    session.resultsReceived++; // Count as "processed" to avoid infinite loops
+    this.activeSessions.set(sessionId, session);
+
+    // Check if this error means the whole session should be marked as failed
+    const sessionRecord = await db
+      .select()
+      .from(networkScanSessions)
+      .where(eq(networkScanSessions.session_id, sessionId))
+      .limit(1);
+
+    if (sessionRecord.length > 0 && sessionRecord[0].status === 'running') {
+      const totalExpectedResults = sessionRecord[0].scanning_agents.length;
+      if (session.resultsReceived === totalExpectedResults) {
+        console.error(`All agents failed for session ${sessionId}. Marking session as failed.`);
+        await db.update(networkScanSessions)
+          .set({ 
+            status: 'failed', 
+            completed_at: new Date(),
+            error_message: errorMessage || 'One or more agents failed during scan.'
+          })
+          .where(eq(networkScanSessions.session_id, sessionId));
+        this.activeSessions.delete(sessionId);
+      } else {
+        // Optionally, log the error against the specific agent or update session with partial error info
+        console.warn(`Partial failure for session ${sessionId}. ${session.resultsReceived}/${totalExpectedResults} agents processed.`);
+      }
+    }
+  }
 
   private generateSessionId(): string {
     return `scan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -769,21 +891,25 @@ class NetworkScanService {
 
     try {
       // Delete old scan results first (foreign key constraint)
+      // Corrected logic: select sessions that started *before* cutoffTime, not exactly at cutoffTime
       const oldSessions = await db
         .select({ session_id: networkScanSessions.session_id })
         .from(networkScanSessions)
-        .where(eq(networkScanSessions.started_at, cutoffTime)); // Corrected to use started_at
+        .where(db.lte(networkScanSessions.started_at, cutoffTime));
 
-      for (const session of oldSessions) {
+      if (oldSessions.length > 0) {
+        const sessionIdsToDelete = oldSessions.map(session => session.session_id);
         await db.delete(networkScanResults)
-          .where(eq(networkScanResults.session_id, session.session_id));
+          .where(db.inArray(networkScanResults.session_id, sessionIdsToDelete));
+        
+        // Delete old sessions
+        const deletedCount = await db.delete(networkScanSessions)
+          .where(db.inArray(networkScanSessions.session_id, sessionIdsToDelete));
+
+        console.log(`Cleaned up ${deletedCount} old scan sessions and their results`);
+      } else {
+        console.log('No old scan sessions to clean up.');
       }
-
-      // Delete old sessions
-      const deletedCount = await db.delete(networkScanSessions)
-        .where(eq(networkScanSessions.started_at, cutoffTime)); // Corrected to use started_at
-
-      console.log(`Cleaned up ${deletedCount} old scan sessions`);
     } catch (error) {
       console.error('Error cleaning up old sessions:', error);
     }

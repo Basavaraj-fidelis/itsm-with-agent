@@ -1,5 +1,66 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
+import fs from 'fs';
+import path from 'path';
+
+interface AgentInfo {
+  id: string;
+  hostname: string;
+  capabilities: string[];
+  lastSeen: Date;
+  status: 'online' | 'offline';
+  ipAddress?: string;
+}
+
+interface WebSocketConfig {
+  port: number;
+  pingInterval: number;
+  pingTimeout: number;
+}
+
+// Load WebSocket configuration from config file if available
+function loadWebSocketConfig(): WebSocketConfig {
+  const defaultConfig: WebSocketConfig = {
+    port: 5000,
+    pingInterval: 30000,
+    pingTimeout: 10000
+  };
+
+  try {
+    const configPath = path.join(process.cwd(), 'Agent', 'config.ini');
+    if (fs.existsSync(configPath)) {
+      const configContent = fs.readFileSync(configPath, 'utf-8');
+      const lines = configContent.split('\n');
+      let inWebSocketSection = false;
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed === '[websocket]') {
+          inWebSocketSection = true;
+          continue;
+        }
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+          inWebSocketSection = false;
+          continue;
+        }
+
+        if (inWebSocketSection && trimmed.includes('=')) {
+          const [key, value] = trimmed.split('=').map(s => s.trim());
+          if (key === 'ping_interval') {
+            defaultConfig.pingInterval = parseInt(value) * 1000; // Convert to ms
+          } else if (key === 'ping_timeout') {
+            defaultConfig.pingTimeout = parseInt(value) * 1000; // Convert to ms
+          }
+        }
+      }
+      console.log('📋 Loaded WebSocket config from Agent/config.ini');
+    }
+  } catch (error) {
+    console.log('⚠️ Could not load WebSocket config, using defaults:', error);
+  }
+
+  return defaultConfig;
+}
 
 class WebSocketService {
   private wss: WebSocketServer | null = null;
@@ -7,10 +68,16 @@ class WebSocketService {
   // Store agent connections with enhanced metadata: ws instance, last ping time, alive status, connection time, message count
   private agentConnections: Map<string, { ws: WebSocket; lastPing: number; isAlive: boolean; connectedAt?: number; messageCount?: number }> = new Map();
   private pendingCommands: Map<string, { resolve: (value: any) => void; reject: (reason?: any) => void; timeout: NodeJS.Timeout }> = new Map(); // Store pending commands
+  private config: WebSocketConfig;
+
+  constructor(server: Server) {
+    this.config = loadWebSocketConfig();
+    this.init(server); // Initialize the WebSocket server here
+  }
 
   init(server: Server): void {
-    this.wss = new WebSocketServer({ 
-      server, 
+    this.wss = new WebSocketServer({
+      server,
       path: '/ws',
       perMessageDeflate: false,
       maxPayload: 1024 * 1024 // 1MB max payload
@@ -142,7 +209,7 @@ class WebSocketService {
       timestamp: new Date().toISOString(),
       message: 'Agent successfully connected to ITSM server'
     };
-    
+
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(confirmMessage));
       console.log(`✅ Sent connection confirmation to agent ${deviceId}`);
@@ -155,7 +222,7 @@ class WebSocketService {
       } else {
         clearInterval(heartbeatInterval); // Stop interval if agent is no longer connected
       }
-    }, 30000); // Ping every 30 seconds
+    }, this.config.pingInterval); // Use configured ping interval
 
     ws.on('message', (message: string) => {
       try {
@@ -208,16 +275,16 @@ class WebSocketService {
           // Process and store performance data
         }
         break;
-      
+
       case 'system-info':
         console.log(`💻 System info from ${deviceId}:`, data.payload);
         break;
-      
+
       case 'autonomous-scan-report':
         console.log(`🔍 Autonomous scan report from ${deviceId}:`, data.scan_data);
         this.handleAutonomousScanReport(deviceId, data);
         break;
-      
+
       case 'ping':
         // Respond to ping with pong
         const connection = this.agentConnections.get(deviceId);
@@ -228,7 +295,7 @@ class WebSocketService {
           }));
         }
         break;
-      
+
       case 'pong':
         // Update connection status
         const conn = this.agentConnections.get(deviceId);
@@ -238,7 +305,7 @@ class WebSocketService {
           console.log(`💓 Pong received from agent ${deviceId}`);
         }
         break;
-      
+
       default:
         console.log(`❓ Unknown message type '${messageType}' from agent ${deviceId}`);
         break;
@@ -249,10 +316,10 @@ class WebSocketService {
     try {
       const scanData = data.scan_data;
       const timestamp = data.timestamp;
-      
+
       console.log(`🔍 Processing autonomous scan from agent ${agentId}`);
       console.log(`📊 Scan results: ${scanData.total_devices_found || 0} devices found`);
-      
+
       // Store scan results in a way that can be accessed by the network scan service
       // This could be stored in database or in-memory for now
       const autonomousScanResult = {
@@ -263,16 +330,16 @@ class WebSocketService {
         scanResults: scanData.discovered_devices || [],
         scanType: 'autonomous'
       };
-      
+
       // Broadcast to any listening clients
       this.broadcastToChannel('autonomous-scans', {
         type: 'autonomous-scan-completed',
         data: autonomousScanResult
       });
-      
+
       // You could also store this in database here if needed
       console.log(`✅ Autonomous scan report processed for agent ${agentId}`);
-      
+
     } catch (error) {
       console.error(`❌ Error processing autonomous scan report from agent ${agentId}:`, error);
     }
@@ -455,7 +522,7 @@ class WebSocketService {
   }
 }
 
-export const websocketService = new WebSocketService();
+export const websocketService = new WebSocketService(null as any); // Pass null or a dummy server if not using http directly
 export const webSocketService = websocketService; // Alternative export name
 
 // Export function for use in other services

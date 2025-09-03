@@ -52,13 +52,33 @@ class ITSMAgent:
     async def connect(self):
         """Connect to the ITSM server via WebSocket"""
         try:
-            # Convert HTTP URL to WebSocket URL
-            if self.server_url.startswith('https://'):
-                ws_url = self.server_url.replace('https://', 'wss://') + '/ws'
-            elif self.server_url.startswith('http://'):
-                ws_url = self.server_url.replace('http://', 'ws://') + '/ws'
-            else:
-                ws_url = f"ws://{self.server_url}/ws"
+            # Load WebSocket URL from config.ini if available
+            try:
+                from configparser import ConfigParser
+                config = ConfigParser()
+                config.read('config.ini')
+                ws_url = config.get('websocket', 'url', fallback=None)
+                
+                if ws_url:
+                    logger.info(f"Using WebSocket URL from config: {ws_url}")
+                else:
+                    # Convert HTTP URL to WebSocket URL
+                    if self.server_url.startswith('https://'):
+                        ws_url = self.server_url.replace('https://', 'wss://') + '/ws'
+                    elif self.server_url.startswith('http://'):
+                        ws_url = self.server_url.replace('http://', 'ws://') + '/ws'
+                    else:
+                        ws_url = f"ws://{self.server_url}/ws"
+                    logger.info(f"Generated WebSocket URL from server URL: {ws_url}")
+            except Exception as e:
+                logger.warning(f"Could not load WebSocket config, using fallback: {e}")
+                # Convert HTTP URL to WebSocket URL
+                if self.server_url.startswith('https://'):
+                    ws_url = self.server_url.replace('https://', 'wss://') + '/ws'
+                elif self.server_url.startswith('http://'):
+                    ws_url = self.server_url.replace('http://', 'ws://') + '/ws'
+                else:
+                    ws_url = f"ws://{self.server_url}/ws"
 
             logger.info(f"🔗 Attempting to connect to {ws_url}")
             logger.info(f"📋 Agent ID: {self.agent_id}")

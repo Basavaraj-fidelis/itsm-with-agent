@@ -80,7 +80,9 @@ async function createNetworkScanTables() {
       )
     `);
 
-    // Create indexes for better performance
+    console.log('All tables created successfully, now creating indexes...');
+
+    // Create indexes for better performance - ensure tables exist first
     await db.execute(sql`
       CREATE INDEX IF NOT EXISTS idx_network_scan_sessions_session_id 
       ON network_scan_sessions(session_id)
