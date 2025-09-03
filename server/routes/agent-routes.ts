@@ -5,7 +5,7 @@ import { performanceService } from "../services/performance-service";
 import { notificationService } from "../services/notification-service";
 import { securityService } from "../services/security-service";
 import { patchComplianceService } from "../services/patch-compliance-service";
-import { websocketService } from "../services/websocket-service"; // Assuming websocketService is imported
+import { websocketService } from "../websocket-service";
 
 // Helper function to generate a device ID if not provided
 function generateDeviceId(report: any): string {
