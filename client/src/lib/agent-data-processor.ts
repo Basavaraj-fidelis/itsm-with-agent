@@ -541,11 +541,8 @@ export class AgentDataProcessor {
             manufacturer = this.getVendorNameFromId(vendorId);
           }
 
-          // Enhanced USB processing with better manufacturer detection
-          const usbDevices = deduplicatedDevices.map((device: any) => {
-            // Extract manufacturer and product info
-            let manufacturer = device.manufacturer || 'Unknown';
-            let productName = device.product_name || device.name || 'USB Device';
+          return deduplicatedDevices.map((device: any) => {
+            // Extract vendor/product IDs if not already present
             let vendorId = device.vendor_id || 'unknown';
             let productId = device.product_id || 'unknown';
 
@@ -560,6 +557,9 @@ export class AgentDataProcessor {
             }
 
             // Extract manufacturer from description with better logic
+            let manufacturer = device.manufacturer || 'Unknown';
+            let productName = device.product_name || device.name || 'USB Device';
+            
             if (device.description) {
               // Handle "VendorCo ProductCode USB Device" pattern
               if (device.description.includes('VendorCo ProductCode')) {
@@ -581,15 +581,8 @@ export class AgentDataProcessor {
               manufacturer = this.getVendorNameFromId(vendorId);
             }
 
-            // Create enhanced description
-            const description = manufacturer !== 'Generic USB' && manufacturer !== 'Unknown'
-              ? `${manufacturer} ${productName}`
-              : device.description || device.name || 'Generic USB Device';
-
             return {
               ...device,
-              description,
-              type: device.device_class || device.type || 'Unknown',
               manufacturer,
               product_name: productName,
               vendor_id: vendorId,
@@ -597,7 +590,6 @@ export class AgentDataProcessor {
               serial_number: device.serial_number || this.extractSerialFromDeviceId(device.device_id) || 'N/A'
             };
           });
-          return usbDevices;
         });
       }
     }
@@ -605,7 +597,7 @@ export class AgentDataProcessor {
     return [];
   }
 
-  private static extractVendorIdFromDeviceId(deviceId: string): string {
+  static extractVendorIdFromDeviceId(deviceId: string): string {
     if (!deviceId) return 'unknown';
     // Handle different USB device ID formats
     const vidMatch = deviceId.match(/VID_([0-9A-F]{4})/i);
@@ -618,7 +610,7 @@ export class AgentDataProcessor {
     return 'unknown';
   }
 
-  private static extractProductIdFromDeviceId(deviceId: string): string {
+  static extractProductIdFromDeviceId(deviceId: string): string {
     if (!deviceId) return 'unknown';
     // Handle different USB device ID formats
     const pidMatch = deviceId.match(/PID_([0-9A-F]{4})/i);
@@ -663,6 +655,9 @@ export class AgentDataProcessor {
     if (!description) return 'Unknown';
 
     // Check for specific patterns first
+    if (description.includes('VendorCo ProductCode')) {
+      return 'VendorCo ProductCode';
+    }
     if (description.includes('VendorCo')) {
       return 'VendorCo';
     }
